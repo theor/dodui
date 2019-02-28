@@ -1,0 +1,74 @@
+[package]
+name = "peg"
+version = "0.1.0"
+authors = ["theor <theo.richart@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+specs = "0.14.3"
+gfx_app = "0.9"
+[dependencies.env_logger]
+version = "0.5"
+
+[dependencies.gfx]
+version = "0.18"
+
+[dependencies.gfx_core]
+version = "0.9"
+
+[dependencies.gfx_device_gl]
+version = "0.16"
+
+[dependencies.gfx_macros]
+version = "0.2"
+
+[dependencies.gfx_window_glfw]
+version = "0.17"
+optional = true
+
+[dependencies.gfx_window_glutin]
+version = "0.29"
+
+[dependencies.gfx_window_sdl]
+version = "0.9"
+optional = true
+
+[dependencies.glutin]
+version = "0.19"
+
+[dependencies.log]
+version = "0.4"
+
+[dependencies.winit]
+version = "0.18"
+[dependencies.cgmath]
+version = "0.16"
+
+[dependencies.genmesh]
+version = "0.5"
+
+[dependencies.gfx_gl]
+version = "0.5"
+
+[dependencies.image]
+version = "0.20"
+
+[dependencies.noise]
+version = "0.2"
+
+[dependencies.rand]
+version = "0.5"
+
+[features]
+default = []
+glfw = ["gfx_window_glfw"]
+headless = ["gfx_window_glutin/headless"]
+mint = ["gfx/mint", "gfx_core/mint"]
+sdl = ["gfx_window_sdl"]
+serialize = ["gfx/serialize", "gfx_core/serialize"]
+unstable = []
+[target."cfg(windows)".dependencies.gfx_device_dx11]
+version = "0.8"
+
+[target."cfg(windows)".dependencies.gfx_window_dxgi]
+version = "0.18"
