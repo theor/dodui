@@ -17,60 +17,19 @@ extern crate cgmath;
 extern crate gfx;
 extern crate gfx_app;
 
+use gfx_app::{ColorFormat, DepthFormat};
 use specs::prelude::*;
 
-#[derive(Debug)]
-struct Vel(f32);
+use cgmath::{Deg, Matrix4, Point2, Point3, Vector2, Vector3};
+use gfx::{texture, Bundle};
 
-impl Component for Vel {
-    type Storage = VecStorage<Self>;
-}
+mod transform_system;
 
-#[derive(Debug)]
-struct Pos {
-    position: Point2<f32>,
-}
-
-impl Pos {
-    pub fn new(x: f32, y: f32) -> Self {
-        Pos {
-            position: (x, y).into(),
-        }
-    }
-}
-
-impl Component for Pos {
-    type Storage = VecStorage<Self>;
-}
-
-use specs_hierarchy::{Hierarchy, HierarchySystem};
-
-struct Parent {
-    entity: Entity,
-}
-
-impl Component for Parent {
-    type Storage = FlaggedStorage<Self, DenseVecStorage<Self>>;
-}
-
-impl specs_hierarchy::Parent for Parent {
-    fn parent_entity(&self) -> Entity {
-        self.entity
-    }
-}
-
-#[derive(Debug)]
-struct LocalToWorld {
-    m: Matrix4<f32>,
-}
-
-impl Component for LocalToWorld {
-    type Storage = VecStorage<Self>;
-}
+use transform_system::*;
 
 struct SysA;
 impl<'a> System<'a> for SysA {
-    type SystemData = (WriteStorage<'a, Pos>, ReadStorage<'a, Vel>);
+    type SystemData = (WriteStorage<'a, Transform>, ReadStorage<'a, Vel>);
 
     fn run(&mut self, (mut pos, vel): Self::SystemData) {
         for (pos, vel) in (&mut pos, &vel).join() {
@@ -81,11 +40,11 @@ impl<'a> System<'a> for SysA {
 
 // struct HierarchySystem;
 // impl<'a> System<'a> for HierarchySystem {
-//     type SystemData = (Entities<'a>, ReadStorage<'a, Pos>, WriteStorage<'a, LocalToWorld>, Read<'a, MouseEvent>);
+//     type SystemData = (Entities<'a>, ReadStorage<'a, Transform>, WriteStorage<'a, GlobalTransform >, Read<'a, MouseEvent>);
 //     fn run(&mut self, (entities, pos, mut ltw, mouse): Self::SystemData) {
 //         for (e, posc) in (&entities, &pos).join() {
 //             let m = cgmath::Matrix4::from_translation([posc.position.x, posc.position.y, 0.0f32].into());
-//             if let None = ltw.get_mut(e) { ltw.insert(e, LocalToWorld { m: cgmath::SquareMatrix::identity() }).unwrap(); };
+//             if let None = ltw.get_mut(e) { ltw.insert(e, GlobalTransform  { m: cgmath::SquareMatrix::identity() }).unwrap(); };
 //             if let Some(parent) = posc.parent {
 //                 let parent_tr = ltw.get(parent).unwrap();
 //                 ltw.get_mut(e).unwrap().m = parent_tr.m * m;
@@ -98,7 +57,7 @@ impl<'a> System<'a> for SysA {
 
 struct PickSystem;
 impl<'a> System<'a> for PickSystem {
-    type SystemData = (ReadStorage<'a, Pos>, Read<'a, MouseEvent>);
+    type SystemData = (ReadStorage<'a, Transform>, Read<'a, MouseEvent>);
     fn run(&mut self, (pos, mouse): Self::SystemData) {}
 }
 
@@ -108,7 +67,7 @@ struct SysRender<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 }
 
 impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'a, R, C> {
-    type SystemData = (ReadStorage<'a, Pos>);
+    type SystemData = (ReadStorage<'a, Transform>);
     fn run(&mut self, pos: Self::SystemData) {
         self.encoder
             .clear(&self.bundle.data.out_color, [0.1, 0.2, 0.3, 1.0]);
@@ -116,8 +75,7 @@ impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'
         let vp: cgmath::Matrix4<f32> = self.bundle.data.transform.into();
 
         for pos in (&pos).join() {
-            let m =
-                cgmath::Matrix4::from_translation([pos.position.x, pos.position.y, 0.0f32].into());
+            let m = pos.matrix();
             let locals = Locals {
                 transform: (vp * m).into(),
             };
@@ -127,11 +85,6 @@ impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'
         }
     }
 }
-
-pub use gfx_app::{ColorFormat, DepthFormat};
-
-use cgmath::{Deg, Matrix4, Point2, Point3, Vector2, Vector3};
-use gfx::{texture, Bundle};
 
 // Declare the vertex format suitable for drawing,
 // as well as the constants used by the shaders
@@ -261,16 +214,21 @@ impl<'a, 'b, R: gfx::Resources> gfx_app::Application<R> for App<'a, 'b, R> {
         };
 
         let mut world = World::new();
-        world.register::<Pos>();
+        world.register::<Transform>();
         world.register::<Vel>();
         world.add_resource::<MouseEvent>(Default::default());
 
         let mut dispatcher = DispatcherBuilder::new()
             .with(SysA, "sys_vel", &[])
             .with(
-                HierarchySystem::<Parent>::new(),
-                "hierarchy_system",
+                specs_hierarchy::HierarchySystem::<Parent>::new(),
+                "parent_hierarchy_system",
                 &["sys_vel"],
+            )
+            .with(
+                TransformSystem::new(),
+                "transform_system",
+                &["parent_hierarchy_system"],
             )
             .build();
         dispatcher.setup(&mut world.res);
@@ -278,17 +236,17 @@ impl<'a, 'b, R: gfx::Resources> gfx_app::Application<R> for App<'a, 'b, R> {
         let e1 = world
             .create_entity()
             .with(Vel(0.01))
-            .with(Pos::new(0.0, 0.0))
+            .with(Transform::new(0.0, 0.0))
             .build();
-        let e2 = world.create_entity().with(Pos::new(2.0, 2.0)).build();
+        let e2 = world.create_entity().with(Transform::new(2.0, 2.0)).build();
         let e3 = world
             .create_entity()
             // .with(Vel(0.01))
-            .with(Pos::new(2.0, 4.0))
+            .with(Transform::new(2.0, 4.0))
             .build();
 
         // This entity does not have `Vel`, so it won't be dispatched.
-        let e4 = world.create_entity().with(Pos::new(4.0, 8.0)).build();
+        let e4 = world.create_entity().with(Transform::new(4.0, 8.0)).build();
 
         {
             let mut parents = world.write_storage::<Parent>();
