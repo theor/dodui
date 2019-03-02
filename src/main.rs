@@ -15,9 +15,37 @@
 extern crate cgmath;
 #[macro_use]
 extern crate gfx;
-extern crate gfx_app;
+
+
+#[allow(unused_imports)]
+#[macro_use]
+extern crate log;
+extern crate env_logger;
+extern crate winit;
+extern crate glutin;
+extern crate gfx_device_gl;
+extern crate gfx_window_glutin;
+// extern crate gfx_window_glfw;
+
+#[cfg(target_os = "windows")]
+extern crate gfx_device_dx11;
+#[cfg(target_os = "windows")]
+extern crate gfx_window_dxgi;
+
+#[cfg(feature = "metal")]
+extern crate gfx_device_metal;
+#[cfg(feature = "metal")]
+extern crate gfx_window_metal;
+
+#[cfg(feature = "vulkan")]
+extern crate gfx_device_vulkan;
+#[cfg(feature = "vulkan")]
+extern crate gfx_window_vulkan;
 
 use specs::prelude::*;
+
+mod gfx_app;
+mod shade;
 
 mod rendering;
 mod transform;

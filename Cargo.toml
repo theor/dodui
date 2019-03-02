@@ -6,7 +6,6 @@ edition = "2018"
 
 [dependencies]
 specs = "0.14.3"
-gfx_app = "0.9"
 specs-hierarchy = "0.3.0"
 hibitset = "*"
 [dependencies.env_logger]
