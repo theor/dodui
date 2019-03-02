@@ -3,72 +3,15 @@ use specs::prelude::*;
 use specs_hierarchy::HierarchyEvent;
 use hibitset::BitSet;
 
-use cgmath::{Deg, Matrix4, Point2, Point3, Vector2, Vector3};
+use crate::transform::global_transform::GlobalTransform;
+use crate::transform::transform::Transform;
+use crate::transform::parent::{Parent, ParentHierarchy};
 
 #[derive(Debug)]
 pub struct Vel(pub f32);
 
 impl Component for Vel {
     type Storage = VecStorage<Self>;
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct Transform {
-    pub position: Point2<f32>,
-}
-
-impl Transform {
-    pub fn new(x: f32, y: f32) -> Self {
-        Transform {
-            position: (x, y).into(),
-        }
-    }
-
-    pub fn matrix(&self) -> Matrix4<f32> {
-        cgmath::Matrix4::from_translation([self.position.x, self.position.y, 0.0f32].into())
-    }
-}
-
-impl Component for Transform {
-    type Storage = FlaggedStorage<Self, DenseVecStorage<Self>>;
-}
-
-use specs_hierarchy::{Hierarchy, HierarchySystem};
-
-pub struct Parent {
-    pub entity: Entity,
-}
-
-pub type ParentHierarchy = Hierarchy<Parent>;
-
-impl Component for Parent {
-    type Storage = FlaggedStorage<Self, DenseVecStorage<Self>>;
-}
-
-impl specs_hierarchy::Parent for Parent {
-    fn parent_entity(&self) -> Entity {
-        self.entity
-    }
-}
-
-#[derive(Debug)]
-pub struct GlobalTransform(pub Matrix4<f32>);
-
-impl Component for GlobalTransform  {
-    type Storage = VecStorage<Self>;
-}
-
-impl GlobalTransform {
-    /// Checks whether each `f32` of the `GlobalTransform` is finite (not NaN or inf).
-    pub fn is_finite(&self) -> bool {
-        AsRef::<[f32;16]>::as_ref(&self.0).iter().all(|f| f32::is_finite(*f))
-    }
-}
-
-impl Default for GlobalTransform {
-    fn default() -> Self {
-         GlobalTransform(cgmath::SquareMatrix::identity())
-    }
 }
 
 pub struct TransformSystem {

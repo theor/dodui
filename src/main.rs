@@ -23,9 +23,9 @@ use specs::prelude::*;
 use cgmath::{Deg, Matrix4, Point2, Point3, Vector2, Vector3};
 use gfx::{texture, Bundle};
 
-mod transform_system;
+mod transform;
 
-use transform_system::*;
+use transform::*;
 
 struct SysA;
 impl<'a> System<'a> for SysA {
