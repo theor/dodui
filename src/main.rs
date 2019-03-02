@@ -60,7 +60,7 @@ impl<'a, 'b, R: gfx::Resources> gfx_app::Application<R> for App<'a, 'b, R> {
         backend: gfx_app::shade::Backend,
         window_targets: gfx_app::WindowTargets<R>,
     ) -> Self {
-        
+        println!("Backend: {:?}", backend);
 
         let mut world = World::new();
         world.register::<Transform>();
