@@ -1,3 +1,6 @@
+mod material;
+pub use material::*;
+
 use cgmath::{Deg, Matrix4, Point3, Vector3};
 use gfx;
 use gfx::{texture, Bundle};
@@ -12,17 +15,18 @@ pub struct SysRender<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 }
 
 impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'a, R, C> {
-    type SystemData = (ReadStorage<'a, GlobalTransform>);
-    fn run(&mut self, pos: Self::SystemData) {
+    type SystemData = (ReadStorage<'a, GlobalTransform>, ReadStorage<'a, Material>);
+    fn run(&mut self, (pos, mat): Self::SystemData) {
         self.encoder
             .clear(&self.bundle.data.out_color, [0.1, 0.2, 0.3, 1.0]);
         self.encoder.clear_depth(&self.bundle.data.out_depth, 1.0);
         let vp: cgmath::Matrix4<f32> = self.bundle.data.transform.into();
 
-        for pos in (&pos).join() {
+        for (pos, mat) in (&pos, &mat).join() {
             let m = pos.0;
             let locals = Locals {
                 transform: (vp * m).into(),
+                color: mat.color.into(),
             };
             self.encoder
                 .update_constant_buffer(&self.bundle.data.locals, &locals);
@@ -43,6 +47,7 @@ gfx_defines! {
 
     constant Locals {
         transform: [[f32; 4]; 4] = "u_Transform",
+        color: [f32; 4] = "u_Color",
     }
 
     pipeline pipe {
@@ -100,10 +105,10 @@ impl<R: gfx::Resources> Renderer<R> {
 
         let vertex_data = [
             // top (0, 0, 1)
-            Vertex::new([-1, -1, 0], [0, 0]),
-            Vertex::new([1, -1, 0], [1, 0]),
+            Vertex::new([0, 0, 0], [0, 0]),
+            Vertex::new([1, 0, 0], [1, 0]),
             Vertex::new([1, 1, 0], [1, 1]),
-            Vertex::new([-1, 1, 0], [0, 1]),
+            Vertex::new([0, 1, 0], [0, 1]),
         ];
 
         let index_data: &[u16] = &[
@@ -139,7 +144,7 @@ impl<R: gfx::Resources> Renderer<R> {
             .unwrap();
 
         let proj = cam(window_targets.aspect_ratio);
-        cgmath::perspective(Deg(45.0f32), window_targets.aspect_ratio, 1.0, 10.0);
+        // cgmath::perspective(Deg(45.0f32), window_targets.aspect_ratio, 1.0, 10.0);
 
         let data = pipe::Data {
             vbuf: vbuf,
@@ -177,15 +182,15 @@ impl<R: gfx::Resources> Renderer<R> {
     }
 }
 
-fn default_view() -> Matrix4<f32> {
+pub fn default_view() -> Matrix4<f32> {
     Matrix4::look_at(
-        Point3::new(0f32, 0f32, 10f32),
+        Point3::new(0f32, 0f32, 1f32),
         Point3::new(0f32, 0.0, 0.0),
         Vector3::unit_y(),
     )
 }
 
-fn cam(w: f32) -> Matrix4<f32> {
-    let f = 10f32;
-    cgmath::ortho(0.0f32, w * f, f, 0.0f32, 0.0f32, 10.0f32)
+pub fn cam(w: f32) -> Matrix4<f32> {
+    let f = 1f32;
+    cgmath::ortho(0.0f32, w * f, f, 0.0f32, -1.0f32, 1.0f32)
 }

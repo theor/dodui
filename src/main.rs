@@ -19,8 +19,8 @@ extern crate gfx_app;
 
 use specs::prelude::*;
 
-mod transform;
 mod rendering;
+mod transform;
 use transform::*;
 
 struct SysA;
@@ -36,11 +36,24 @@ impl<'a> System<'a> for SysA {
 
 struct PickSystem;
 impl<'a> System<'a> for PickSystem {
-    type SystemData = (ReadStorage<'a, Transform>, Read<'a, MouseEvent>);
-    fn run(&mut self, (_pos, _mouse): Self::SystemData) {}
+    type SystemData = (ReadStorage<'a, GlobalTransform>, Read<'a, MouseEvent>);
+    fn run(&mut self, (pos, mouse): Self::SystemData) {
+        use cgmath::SquareMatrix;
+        use cgmath::Transform;
+
+        for pos in (&pos).join() {
+            let cam = rendering::cam(1.33f32) * rendering::default_view() * pos.0;
+            let p2 = cam.transform_point(cgmath::Point3::new(0.0,0.0,0.0));
+            println!("{:?}", p2);
+        }
+
+        let p: cgmath::Point3<f32> =
+            cgmath::Point3::new(mouse.position.0 as f32, mouse.position.1 as f32, 0.0);
+        let cam = rendering::cam(1.33f32) * rendering::default_view();
+        let p2 = cam.invert().unwrap().transform_point(p);
+        println!("{:?} {:?}", p, p2);
+    }
 }
-
-
 
 //----------------------------------------
 struct App<'a, 'b, R: gfx::Resources> {
@@ -49,7 +62,7 @@ struct App<'a, 'b, R: gfx::Resources> {
     dispatcher: Dispatcher<'a, 'b>,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct MouseEvent {
     position: (i32, i32),
 }
@@ -65,10 +78,12 @@ impl<'a, 'b, R: gfx::Resources> gfx_app::Application<R> for App<'a, 'b, R> {
         let mut world = World::new();
         world.register::<Transform>();
         world.register::<Vel>();
+        world.register::<rendering::Material>();
         world.add_resource::<MouseEvent>(Default::default());
 
         let mut dispatcher = DispatcherBuilder::new()
             .with(SysA, "sys_vel", &[])
+            .with(PickSystem, "sys_pick", &[])
             .with(
                 specs_hierarchy::HierarchySystem::<Parent>::new(),
                 "parent_hierarchy_system",
@@ -86,23 +101,28 @@ impl<'a, 'b, R: gfx::Resources> gfx_app::Application<R> for App<'a, 'b, R> {
             .create_entity()
             .with(Vel(0.01))
             .with(Transform::new(0.0, 0.0))
+            .with(rendering::Material::from_color(1.0, 0.0, 0.0, 1.0))
             .build();
-        let e2 = world.create_entity().with(Transform::new(2.0, 2.0)).build();
-        let e3 = world
+        let e2 = world
             .create_entity()
-            // .with(Vel(0.01))
+            .with(Transform::new(2.0, 2.0))
+            .with(rendering::Material::from_color(0.0, 1.0, 0.0, 1.0))
+            .with(Vel(0.005))
+            .with(Parent { entity: e1 })
+            .build();
+        let _e3 = world
+            .create_entity()
+            .with(rendering::Material::from_color(0.0, 0.0, 1.0, 1.0))
+            .with(Parent { entity: e1 })
             .with(Transform::new(2.0, 4.0))
             .build();
 
-        // This entity does not have `Vel`, so it won't be dispatched.
-        let e4 = world.create_entity().with(Transform::new(4.0, 8.0)).build();
-
-        {
-            let mut parents = world.write_storage::<Parent>();
-            parents.insert(e2, Parent { entity: e1 }).unwrap();
-            parents.insert(e3, Parent { entity: e1 }).unwrap();
-            parents.insert(e4, Parent { entity: e2 }).unwrap();
-        }
+        let _e4 = world
+            .create_entity()
+            .with(Transform::new(4.0, 7.0))
+            .with(rendering::Material::from_color(1.0, 1.0, 0.0, 1.0))
+            .with(Parent { entity: e2 })
+            .build();
 
         let renderer = rendering::Renderer::new(factory, backend, window_targets);
 
