@@ -20,11 +20,10 @@ extern crate gfx_app;
 use gfx_app::{ColorFormat, DepthFormat};
 use specs::prelude::*;
 
-use cgmath::{Deg, Matrix4, Point2, Point3, Vector2, Vector3};
+use cgmath::{Deg, Matrix4, Point3, Vector3};
 use gfx::{texture, Bundle};
 
 mod transform;
-
 use transform::*;
 
 struct SysA;
@@ -37,23 +36,6 @@ impl<'a> System<'a> for SysA {
         }
     }
 }
-
-// struct HierarchySystem;
-// impl<'a> System<'a> for HierarchySystem {
-//     type SystemData = (Entities<'a>, ReadStorage<'a, Transform>, WriteStorage<'a, GlobalTransform >, Read<'a, MouseEvent>);
-//     fn run(&mut self, (entities, pos, mut ltw, mouse): Self::SystemData) {
-//         for (e, posc) in (&entities, &pos).join() {
-//             let m = cgmath::Matrix4::from_translation([posc.position.x, posc.position.y, 0.0f32].into());
-//             if let None = ltw.get_mut(e) { ltw.insert(e, GlobalTransform  { m: cgmath::SquareMatrix::identity() }).unwrap(); };
-//             if let Some(parent) = posc.parent {
-//                 let parent_tr = ltw.get(parent).unwrap();
-//                 ltw.get_mut(e).unwrap().m = parent_tr.m * m;
-//             } else {
-//                 ltw.get_mut(e).unwrap().m = m;
-//             }
-//         }
-//     }
-// }
 
 struct PickSystem;
 impl<'a> System<'a> for PickSystem {

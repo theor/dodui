@@ -1,9 +1,7 @@
 
 use specs::prelude::*;
-use specs_hierarchy::HierarchyEvent;
-use hibitset::BitSet;
 
-use cgmath::{Deg, Matrix4, Point2, Point3, Vector2, Vector3};
+use cgmath::{Matrix4};
 
 #[derive(Debug)]
 pub struct GlobalTransform(pub Matrix4<f32>);
