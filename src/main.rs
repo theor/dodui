@@ -27,13 +27,64 @@ impl Component for Vel {
 }
 
 #[derive(Debug)]
-struct Pos(pub f32);
+struct Pos { position: Point2<f32>, parent: Option<Entity> }
 
 impl Component for Pos {
     type Storage = VecStorage<Self>;
 }
 
+#[derive(Debug)]
+struct LocalToWorld { m: Matrix4<f32> }
+
+impl Component for LocalToWorld {
+    type Storage = VecStorage<Self>;
+}
+
+impl Pos {
+    pub fn new(x: f32, y: f32, parent: Option<Entity>) -> Self {
+        Pos {
+            position: (x,y).into(),
+            parent: None,
+        }
+    }
+}
+
 struct SysA;
+impl<'a> System<'a> for SysA {
+    type SystemData = (WriteStorage<'a, Pos>, ReadStorage<'a, Vel>);
+
+    fn run(&mut self, (mut pos, vel): Self::SystemData) {
+        for (pos, vel) in (&mut pos, &vel).join() {
+            pos.position.x += vel.0;
+        }
+    }
+}
+
+struct HierarchySystem;
+impl<'a> System<'a> for HierarchySystem {
+    type SystemData = (Entities<'a>, ReadStorage<'a, Pos>, WriteStorage<'a, LocalToWorld>, Read<'a, MouseEvent>);
+    fn run(&mut self, (entities, pos, mut ltw, mouse): Self::SystemData) {
+        for (e, posc) in (&entities, &pos).join() {
+            let m = cgmath::Matrix4::from_translation([posc.position.x, posc.position.y, 0.0f32].into());
+            if let None = ltw.get_mut(e) { ltw.insert(e, LocalToWorld { m: cgmath::SquareMatrix::identity() }).unwrap(); };
+            if let Some(parent) = posc.parent {
+                let parent_tr = ltw.get(parent).unwrap();
+                ltw.get_mut(e).unwrap().m = parent_tr.m * m;
+            } else {
+                ltw.get_mut(e).unwrap().m = m;
+            }
+        }
+    }
+}
+
+struct PickSystem;
+impl<'a> System<'a> for PickSystem {
+    type SystemData = (ReadStorage<'a, Pos>, Read<'a, MouseEvent>);
+    fn run(&mut self, (pos, mouse): Self::SystemData) {
+
+    }
+}
+
 struct SysRender<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> {
     bundle: &'a Bundle<R, pipe::Data<R>>,
     encoder: &'a mut gfx::Encoder<R, C>,
@@ -47,7 +98,7 @@ impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'
         let vp: cgmath::Matrix4<f32> = self.bundle.data.transform.into();
 
         for pos in (&pos).join() {
-            let m = cgmath::Matrix4::from_translation([pos.0, 0.0f32, 0.0f32].into());
+            let m = cgmath::Matrix4::from_translation([pos.position.x, pos.position.y, 0.0f32].into());
             let locals = Locals {
                 transform: (vp * m).into(),
             };
@@ -58,25 +109,9 @@ impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'
     }
 }
 
-impl<'a> System<'a> for SysA {
-    // These are the resources required for execution.
-    // You can also define a struct and `#[derive(SystemData)]`,
-    // see the `full` example.
-    type SystemData = (WriteStorage<'a, Pos>, ReadStorage<'a, Vel>);
-
-    fn run(&mut self, (mut pos, vel): Self::SystemData) {
-        // The `.join()` combines multiple component storages,
-        // so we get access to all entities which have
-        // both a position and a velocity.
-        for (pos, vel) in (&mut pos, &vel).join() {
-            pos.0 += vel.0;
-        }
-    }
-}
-
 pub use gfx_app::{ColorFormat, DepthFormat};
 
-use cgmath::{Deg, Matrix4, Point3, Vector3};
+use cgmath::{Deg, Matrix4, Point3, Point2, Vector3, Vector2};
 use gfx::{texture, Bundle};
 
 // Declare the vertex format suitable for drawing,
@@ -119,6 +154,12 @@ struct App<'a, 'b, R: gfx::Resources> {
     world: World,
     dispatcher: Dispatcher<'a, 'b>,
 }
+
+#[derive(Default)]
+struct MouseEvent {
+    position: (i32, i32),
+}
+
 
 impl<'a, 'b, R: gfx::Resources> gfx_app::Application<R> for App<'a, 'b, R> {
     fn new<F: gfx::Factory<R>>(
@@ -203,15 +244,16 @@ impl<'a, 'b, R: gfx::Resources> gfx_app::Application<R> for App<'a, 'b, R> {
         world.register::<Pos>();
         world.register::<Vel>();
 
-        world.create_entity().with(Vel(0.01)).with(Pos(0.0)).build();
-        world.create_entity().with(Vel(0.01)).with(Pos(1.6)).build();
-        world.create_entity().with(Vel(0.01)).with(Pos(5.4)).build();
+        let e1 = world.create_entity().with(Vel(0.01)).with(Pos::new(0.0, 0.0, None)).build();
+        let e2 = world.create_entity().with(Pos::new(2.0, 2.0, Some(e1))).build();
+        world.create_entity().with(Vel(0.01)).with(Pos::new(2.0, 4.0, Some(e1))).build();
 
         // This entity does not have `Vel`, so it won't be dispatched.
-        world.create_entity().with(Pos(-2.0)).build();
+        world.create_entity().with(Pos::new(4.0, 8.0, Some(e2))).build();
 
         let mut dispatcher = DispatcherBuilder::new()
-            .with(SysA, "sys_a", &[])
+            .with(SysA, "sys_vel", &[])
+            .with(HierarchySystem, "sys_hierarchy", &["sys_vel"])
             // .with_thread_local(SysRender { bundle: Bundle::new(slice, pso, data), phantomc: PhantomData })
             .build();
         // This will call the `setup` function of every system.
@@ -241,6 +283,18 @@ impl<'a, 'b, R: gfx::Resources> gfx_app::Application<R> for App<'a, 'b, R> {
         // In this example the transform is static except for window resizes.
         let proj = cam(window_targets.aspect_ratio);// cgmath::perspective(Deg(45.0f32), window_targets.aspect_ratio, 1.0, 10.0);
         self.bundle.data.transform = (proj * default_view()).into();
+    }
+
+    
+    fn on(&mut self, event: winit::WindowEvent) {
+        match event {
+            winit::WindowEvent::CursorMoved { position: p, .. } => {
+                let p: (i32,i32)= p.into();
+                self.world.write_resource::<MouseEvent>().position = p;
+            },
+            _ => ()
+        };
+        // println!("{:?}",event);
     }
 }
 
