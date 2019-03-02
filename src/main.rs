@@ -98,7 +98,7 @@ struct MouseEvent {
 impl<'a, 'b, R: gfx::Resources> gfx_app::Application<R> for App<'a, 'b, R> {
     fn new<F: gfx::Factory<R>>(
         factory: &mut F,
-        backend: gfx_app::shade::Backend,
+        backend: shade::Backend,
         window_targets: gfx_app::WindowTargets<R>,
     ) -> Self {
         println!("Backend: {:?}", backend);

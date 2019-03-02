@@ -4,7 +4,9 @@ pub use material::*;
 use cgmath::{Deg, Matrix4, Point3, Vector3};
 use gfx;
 use gfx::{texture, Bundle};
-use gfx_app::{ColorFormat, DepthFormat};
+use crate::gfx_app::{ColorFormat, DepthFormat};
+use crate::gfx_app;
+use crate::shade;
 
 use crate::transform::GlobalTransform;
 use specs::prelude::*;
@@ -77,12 +79,12 @@ pub struct Renderer<R: gfx::Resources> {
 impl<R: gfx::Resources> Renderer<R> {
     pub fn new<F: gfx::Factory<R>>(
         factory: &mut F,
-        backend: gfx_app::shade::Backend,
+        backend: shade::Backend,
         window_targets: gfx_app::WindowTargets<R>,
     ) -> Self {
         use gfx::traits::FactoryExt;
 
-        let vs = gfx_app::shade::Source {
+        let vs = shade::Source {
             glsl_120: include_bytes!("../shader/cube_120.glslv"),
             glsl_150: include_bytes!("../shader/cube_150_core.glslv"),
             glsl_es_100: include_bytes!("../shader/cube_100_es.glslv"),
@@ -90,9 +92,9 @@ impl<R: gfx::Resources> Renderer<R> {
             hlsl_40: include_bytes!("../data/vertex.fx"),
             msl_11: include_bytes!("../shader/cube_vertex.metal"),
             vulkan: include_bytes!("../data/vert.spv"),
-            ..gfx_app::shade::Source::empty()
+            ..shade::Source::empty()
         };
-        let ps = gfx_app::shade::Source {
+        let ps = shade::Source {
             glsl_120: include_bytes!("../shader/cube_120.glslf"),
             glsl_150: include_bytes!("../shader/cube_150_core.glslf"),
             glsl_es_100: include_bytes!("../shader/cube_100_es.glslf"),
@@ -100,7 +102,7 @@ impl<R: gfx::Resources> Renderer<R> {
             hlsl_40: include_bytes!("../data/pixel.fx"),
             msl_11: include_bytes!("../shader/cube_frag.metal"),
             vulkan: include_bytes!("../data/frag.spv"),
-            ..gfx_app::shade::Source::empty()
+            ..shade::Source::empty()
         };
 
         let vertex_data = [
