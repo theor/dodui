@@ -58,7 +58,7 @@ impl<'a> System<'a> for SysA {
 struct PickSystem;
 impl<'a> System<'a> for PickSystem {
     type SystemData = (ReadStorage<'a, Transform>, Read<'a, MouseEvent>);
-    fn run(&mut self, (pos, mouse): Self::SystemData) {}
+    fn run(&mut self, (_pos, _mouse): Self::SystemData) {}
 }
 
 struct SysRender<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> {
