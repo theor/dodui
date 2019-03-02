@@ -67,7 +67,7 @@ struct SysRender<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 }
 
 impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'a, R, C> {
-    type SystemData = (ReadStorage<'a, Transform>);
+    type SystemData = (ReadStorage<'a, GlobalTransform>);
     fn run(&mut self, pos: Self::SystemData) {
         self.encoder
             .clear(&self.bundle.data.out_color, [0.1, 0.2, 0.3, 1.0]);
@@ -75,7 +75,7 @@ impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'
         let vp: cgmath::Matrix4<f32> = self.bundle.data.transform.into();
 
         for pos in (&pos).join() {
-            let m = pos.matrix();
+            let m = pos.0;
             let locals = Locals {
                 transform: (vp * m).into(),
             };
