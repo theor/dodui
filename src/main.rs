@@ -89,6 +89,7 @@ struct App<'a, 'b, R: gfx::Resources> {
     renderer: rendering::Renderer<R>,
     world: World,
     dispatcher: Dispatcher<'a, 'b>,
+    store: manager::ResourceManager,
 }
 
 #[derive(Debug, Default)]
@@ -98,7 +99,7 @@ struct MouseEvent {
 
 impl<'a, 'b, R: gfx::Resources> gfx_app::Application<R> for App<'a, 'b, R> {
     fn new<F: gfx::Factory<R>>(
-        factory: &mut F,
+        mut factory: F,
         backend: shade::Backend,
         window_targets: gfx_app::WindowTargets<R>,
     ) -> Self {
@@ -159,9 +160,9 @@ impl<'a, 'b, R: gfx::Resources> gfx_app::Application<R> for App<'a, 'b, R> {
         let renderer = rendering::Renderer::new(factory, backend, window_targets);
 
         use manager::*;
-        let mut ctx = Ctx::new(factory);
+        let mut ctx = Ctx::new();
         println!("current path {:?}", std::env::current_dir());
-        let mut store = Store::new(StoreOpt::default()).expect("store creation");
+        let mut store: manager::ResourceManager = Store::new(StoreOpt::default()).expect("store creation");
         use std::path::Path;
 
         let my_resource = store.get::<FromFS>(&Path::new("shader/cube.hlsl").into(), &mut ctx);
@@ -174,12 +175,14 @@ impl<'a, 'b, R: gfx::Resources> gfx_app::Application<R> for App<'a, 'b, R> {
             world,
             dispatcher,
             renderer,
+            store:store,
         }
     }
 
-    fn render<C2: gfx::CommandBuffer<R>>(&mut self, encoder: &mut gfx::Encoder<R, C2>) {
+     fn render<C2: gfx::CommandBuffer<R>>(&mut self, encoder: &mut gfx::Encoder<R, C2>) {
         self.renderer.render(&self.world.res, encoder);
         self.dispatcher.dispatch(&mut self.world.res);
+        self.store.sync(&mut manager::Ctx::new());
     }
 
     fn on_resize(&mut self, window_targets: gfx_app::WindowTargets<R>) {

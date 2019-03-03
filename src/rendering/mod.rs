@@ -81,12 +81,15 @@ impl Vertex {
 }
 
 pub struct Renderer<R: gfx::Resources> {
-    bundle: Bundle<R, pipe::Data<R>>,
+    // bundle: Bundle<R, pipe::Data<R>>,
+    slice: gfx::Slice<R>,
+    data: pipe::Data<R>,
+    pso: Option<i32>,
 }
 
 impl<R: gfx::Resources> Renderer<R> {
     pub fn new<F: gfx::Factory<R>>(
-        factory: &mut F,
+        mut factory: F,
         backend: shade::Backend,
         window_targets: gfx_app::WindowTargets<R>,
     ) -> Self {
@@ -169,29 +172,33 @@ impl<R: gfx::Resources> Renderer<R> {
         };
 
         Renderer {
-            bundle: Bundle::new(slice, pso, data),
+            slice,
+            data,
+            pso: None,
+            // bundle: Bundle::new(slice, pso, data),
         }
     }
 
     pub fn render<C: gfx::CommandBuffer<R>>(
         &mut self,
         res: &specs::Resources,
+        // factory: &mut F,
         encoder: &mut gfx::Encoder<R, C>,
     ) {
-        let mut sys = SysRender {
-            bundle: &self.bundle,
-            encoder: encoder,
-        };
-        sys.run_now(res);
+        // let mut sys = SysRender {
+        //     bundle: &self.bundle,
+        //     encoder: encoder,
+        // };
+        // sys.run_now(res);
     }
 
     pub fn on_resize(&mut self, window_targets: gfx_app::WindowTargets<R>) {
-        self.bundle.data.out_color = window_targets.color;
-        self.bundle.data.out_depth = window_targets.depth;
+        self.data.out_color = window_targets.color;
+        self.data.out_depth = window_targets.depth;
 
         // In this example the transform is static except for window resizes.
         let proj = cam(window_targets.aspect_ratio); // cgmath::perspective(Deg(45.0f32), window_targets.aspect_ratio, 1.0, 10.0);
-        self.bundle.data.transform = (proj * default_view()).into();
+        self.data.transform = (proj * default_view()).into();
     }
 }
 

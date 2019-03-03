@@ -1,13 +1,12 @@
-use std::sync::Arc;
 use std::fmt;
 use std::fs::File;
 use std::io::{self, Read};
 pub use warmy::{Load, Loaded, SimpleKey, Storage};
 pub use warmy::{Store, StoreOpt};
 
-pub struct Id(u32);
+// pub struct Id(u32);
 
-pub trait Resource {}
+// pub trait Resource {}
 
 // Possible errors that might happen.
 #[derive(Debug)]
@@ -35,33 +34,29 @@ pub struct FromFS(pub Vec<u8>);
 #[derive(Debug)]
 pub struct FromMem(usize);
 
-pub struct Ctx<R: gfx::Resources, F: gfx::Factory<R>> {
+pub struct Ctx {
     // f: Arc<F>,
-    _r: std::marker::PhantomData<R>,
-    _f: std::marker::PhantomData<F>,
 }
 
-impl<R: gfx::Resources, F: gfx::Factory<R>> Ctx<R, F> {
-    pub fn new(factory: &mut F) -> Self {
+impl Ctx {
+    pub fn new() -> Self {
         Ctx {
-            // f: Arc::from(factory),
-            _r: std::marker::PhantomData,
-            _f: std::marker::PhantomData,
         }
     }
 }
 
-impl<R: gfx::Resources, F: gfx::Factory<R>> Load<Ctx<R, F>, SimpleKey> for FromFS {
+impl Load<Ctx, SimpleKey> for FromFS {
     type Error = Error;
 
     fn load(
         key: SimpleKey,
-        storage: &mut Storage<Ctx<R, F>, SimpleKey>,
-        _: &mut Ctx<R, F>,
+        storage: &mut Storage<Ctx, SimpleKey>,
+        _: &mut Ctx,
     ) -> Result<Loaded<Self, SimpleKey>, Self::Error> {
         // as we only accept filesystem here, we’ll ensure the key is a filesystem one
         match key {
             SimpleKey::Path(path) => {
+                println!("Load Physical {:?}", path);
                 let mut fh = File::open(path).map_err(Error::IOError)?;
                 let mut buf = Vec::default();
                 fh.read_to_end(&mut buf);
@@ -74,17 +69,18 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Load<Ctx<R, F>, SimpleKey> for FromF
     }
 }
 
-impl<R: gfx::Resources, F: gfx::Factory<R>> Load<Ctx<R, F>, SimpleKey> for FromMem {
+impl Load<Ctx, SimpleKey> for FromMem {
     type Error = Error;
 
     fn load(
         key: SimpleKey,
-        storage: &mut Storage<Ctx<R, F>, SimpleKey>,
-        ctx: &mut Ctx<R, F>,
+        storage: &mut Storage<Ctx, SimpleKey>,
+        ctx: &mut Ctx,
     ) -> Result<Loaded<Self, SimpleKey>, Self::Error> {
         // ensure we only accept logical resources
         match key {
             SimpleKey::Logical(key) => {
+                println!("Load logical {}", key);
                 use std::path::Path;
                 let vk = Path::new("data/vertex.fx").into();
                 let pk = Path::new("data/pixel.fx").into();
@@ -106,4 +102,4 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Load<Ctx<R, F>, SimpleKey> for FromM
     }
 }
 
-pub type ResourceManager<R: gfx::Resources, F: gfx::Factory<R>> = Store<Ctx<R, F>, SimpleKey>;
+pub type ResourceManager = Store<Ctx, SimpleKey>;
