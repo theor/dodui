@@ -32,7 +32,9 @@ pub struct FromFS(pub Vec<u8>);
 
 // The resource we want to compute from memory.
 #[derive(Debug)]
-pub struct FromMem(usize);
+pub struct FromMem {
+    version: u8,
+}
 
 pub struct Ctx {
     // f: Arc<F>,
@@ -40,8 +42,7 @@ pub struct Ctx {
 
 impl Ctx {
     pub fn new() -> Self {
-        Ctx {
-        }
+        Ctx {}
     }
 }
 
@@ -69,7 +70,8 @@ impl Load<Ctx, SimpleKey> for FromFS {
     }
 }
 
-impl Load<Ctx, SimpleKey> for FromMem {
+struct AlwaysFail;
+impl Load<Ctx, SimpleKey, AlwaysFail> for FromMem {
     type Error = Error;
 
     fn load(
@@ -77,6 +79,18 @@ impl Load<Ctx, SimpleKey> for FromMem {
         storage: &mut Storage<Ctx, SimpleKey>,
         ctx: &mut Ctx,
     ) -> Result<Loaded<Self, SimpleKey>, Self::Error> {
+        Err(Error::CannotLoadFromFS)
+    }
+}
+
+impl Load<Ctx, SimpleKey> for FromMem {
+    type Error = Error;
+
+    fn load(
+        key: SimpleKey,
+        storage: &mut Storage<Ctx, SimpleKey>,
+        ctx: &mut Ctx,
+    ) -> Result<Loaded<Self, SimpleKey>, Error> {
         // ensure we only accept logical resources
         match key {
             SimpleKey::Logical(key) => {
@@ -94,11 +108,23 @@ impl Load<Ctx, SimpleKey> for FromMem {
                 //         crate::rendering::pipe::new(),
                 //     )
                 //     .unwrap();
-                Ok(Loaded::with_deps(FromMem(key.len()), Vec::default()))
+                Ok(Loaded::with_deps(FromMem { version: 0 }, vec![vk, pk]))
             }
 
             SimpleKey::Path(_) => Err(Error::CannotLoadFromFS),
         }
+    }
+
+    fn reload(
+        &self,
+        key: SimpleKey,
+        storage: &mut Storage<Ctx, SimpleKey>,
+        ctx: &mut Ctx,
+    ) -> Result<Self, Error> {
+        let prev = storage.get_by::<FromMem, AlwaysFail>(&key, ctx, AlwaysFail);
+        let prev_version = prev.map(|x| x.borrow().version).unwrap_or(0);
+        let mut l: Result<Loaded<Self, SimpleKey>, Error> = <FromMem as warmy::load::Load<Ctx, SimpleKey, ()>>::load(key, storage, ctx);
+        l.map(|mut lr| { lr.res.version = prev_version + 1; println!("  new version {}", lr.res.version); lr.res })
     }
 }
 

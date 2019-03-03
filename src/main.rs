@@ -97,7 +97,9 @@ struct MouseEvent {
     position: (i32, i32),
 }
 
-impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>> gfx_app::Application<R, F> for App<'a, 'b, R, F> {
+impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>> gfx_app::Application<R, F>
+    for App<'a, 'b, R, F>
+{
     fn new(
         mut factory: F,
         backend: shade::Backend,
@@ -162,24 +164,33 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>> gfx_app::Application<R, F> f
         use manager::*;
         let mut ctx = Ctx::new();
         println!("current path {:?}", std::env::current_dir());
-        let mut store: manager::ResourceManager = Store::new(StoreOpt::default()).expect("store creation");
+        let mut store: manager::ResourceManager =
+            Store::new(StoreOpt::default()).expect("store creation");
         use std::path::Path;
 
         let my_resource = store.get::<FromFS>(&Path::new("shader/cube.hlsl").into(), &mut ctx);
         println!("loaded {:?}", my_resource);
 
-        let my_resource = store.get::<FromMem>(&"shader/cube.hlsl".into(), &mut ctx);
+        let my_resource = store
+            .get::<FromMem>(&"shader/cube.hlsl".into(), &mut ctx)
+            .unwrap();
+        println!("loaded {:?}", my_resource);
+        {
+            // let mut m = my_resource.borrow_mut();
+            // let asd =  (*m);
+            // m.0 = m.0 + 1;
+        }
         println!("loaded {:?}", my_resource);
 
         App {
             world,
             dispatcher,
             renderer,
-            store:store,
+            store: store,
         }
     }
 
-     fn render<C2: gfx::CommandBuffer<R>>(&mut self, encoder: &mut gfx::Encoder<R, C2>) {
+    fn render<C2: gfx::CommandBuffer<R>>(&mut self, encoder: &mut gfx::Encoder<R, C2>) {
         self.renderer.render(&self.world.res, encoder);
         self.dispatcher.dispatch(&mut self.world.res);
         self.store.sync(&mut manager::Ctx::new());
