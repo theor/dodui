@@ -17,7 +17,10 @@ pub struct Screen {
 }
 
 pub struct SysRender<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> {
-    bundle: &'a Bundle<R, pipe::Data<R>>,
+    // bundle: &'a Bundle<R, pipe::Data<R>>,
+    slice: &'a gfx::Slice<R>,
+    data: &'a pipe::Data<R>,
+    pso: &'a gfx::PipelineState<R, pipe::Meta>,
     encoder: &'a mut gfx::Encoder<R, C>,
 }
 
@@ -25,9 +28,9 @@ impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'
     type SystemData = (ReadStorage<'a, GlobalTransform>, ReadStorage<'a, Material>, Read<'a, Screen>);
     fn run(&mut self, (pos, mat, screen): Self::SystemData) {
         self.encoder
-            .clear(&self.bundle.data.out_color, [0.1, 0.2, 0.3, 1.0]);
-        self.encoder.clear_depth(&self.bundle.data.out_depth, 1.0);
-        let vp: cgmath::Matrix4<f32> = self.bundle.data.transform.into();
+            .clear(&self.data.out_color, [0.1, 0.2, 0.3, 1.0]);
+        self.encoder.clear_depth(&self.data.out_depth, 1.0);
+        let vp: cgmath::Matrix4<f32> = self.data.transform.into();
 
         for (pos, mat) in (&pos, &mat).join() {
             let m = pos.0;
@@ -37,8 +40,8 @@ impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'
                 screen: [screen.size.0 as f32, screen.size.1 as f32, 0.0, 0.0]
             };
             self.encoder
-                .update_constant_buffer(&self.bundle.data.locals, &locals);
-            self.bundle.encode(&mut self.encoder);
+                .update_constant_buffer(&self.data.locals, &locals);
+            self.encoder.draw(self.slice, self.pso, self.data);;
         }
     }
 }
@@ -85,7 +88,7 @@ pub struct Renderer<R: gfx::Resources, F: gfx::Factory<R>> {
     // bundle: Bundle<R, pipe::Data<R>>,
     slice: gfx::Slice<R>,
     data: pipe::Data<R>,
-    pso: Option<i32>,
+    pso: Option<gfx::PipelineState<R, pipe::Meta>>,
 }
 
 impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
@@ -175,7 +178,7 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
             factory,
             slice,
             data,
-            pso: pso.into(),
+            pso: pso.ok(),
             // bundle: Bundle::new(slice, pso, data),
         }
     }
@@ -186,11 +189,18 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
         // factory: &mut F,
         encoder: &mut gfx::Encoder<R, C>,
     ) {
-        // let mut sys = SysRender {
-        //     bundle: &self.bundle,
-        //     encoder: encoder,
-        // };
-        // sys.run_now(res);
+        match self.pso.as_ref() {
+            Some(pso) => {
+                let mut sys = SysRender {
+                    slice: &self.slice,
+                    pso: pso,
+                    data: &self.data,
+                    encoder: encoder,
+                };
+                sys.run_now(res);
+            },
+            None => {},
+        }
     }
 
     pub fn on_resize(&mut self, window_targets: gfx_app::WindowTargets<R>) {
