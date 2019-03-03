@@ -168,11 +168,11 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>> gfx_app::Application<R, F>
             Store::new(StoreOpt::default()).expect("store creation");
         use std::path::Path;
 
-        let my_resource = store.get::<FromFS>(&Path::new("shader/cube.hlsl").into(), &mut ctx);
-        println!("loaded {:?}", my_resource);
+        // let my_resource = store.get::<FromFS>(&Path::new("shader/cube.hlsl").into(), &mut ctx);
+        // println!("loaded {:?}", my_resource);
 
         let my_resource = store
-            .get::<FromMem>(&"shader/cube.hlsl".into(), &mut ctx)
+            .get::<ShaderSet>(&"shader/cube.hlsl".into(), &mut ctx)
             .unwrap();
         println!("loaded {:?}", my_resource);
         {
@@ -191,7 +191,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>> gfx_app::Application<R, F>
     }
 
     fn render<C2: gfx::CommandBuffer<R>>(&mut self, encoder: &mut gfx::Encoder<R, C2>) {
-        self.renderer.render(&self.world.res, encoder);
+        self.renderer.render(&self.world.res, encoder, &mut self.store);
         self.dispatcher.dispatch(&mut self.world.res);
         self.store.sync(&mut manager::Ctx::new());
     }

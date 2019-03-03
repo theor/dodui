@@ -121,7 +121,7 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
             ..shade::Source::empty()
         };
 
-        let v = 1;
+        let v = 100;
         let vertex_data = [
             // top (0, 0, 1)
             Vertex::new([0, 0, 0], [0, 0]),
@@ -188,6 +188,7 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
         res: &specs::Resources,
         // factory: &mut F,
         encoder: &mut gfx::Encoder<R, C>,
+        store: &mut crate::manager::ResourceManager,
     ) {
         match self.pso.as_ref() {
             Some(pso) => {
