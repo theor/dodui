@@ -8,6 +8,8 @@ edition = "2018"
 specs = "0.14.3"
 specs-hierarchy = "0.3.0"
 hibitset = "*"
+warmy = "0.11.1"
+
 [dependencies.env_logger]
 version = "0.5"
 

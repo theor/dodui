@@ -16,15 +16,14 @@ extern crate cgmath;
 #[macro_use]
 extern crate gfx;
 
-
 #[allow(unused_imports)]
 #[macro_use]
 extern crate log;
 extern crate env_logger;
-extern crate winit;
-extern crate glutin;
 extern crate gfx_device_gl;
 extern crate gfx_window_glutin;
+extern crate glutin;
+extern crate winit;
 // extern crate gfx_window_glfw;
 
 #[cfg(target_os = "windows")]
@@ -73,7 +72,7 @@ impl<'a> System<'a> for PickSystem {
 
         for pos in (&pos).join() {
             let cam = rendering::cam(1.33f32) * rendering::default_view() * pos.0;
-            let p2 = cam.transform_point(cgmath::Point3::new(0.0,0.0,0.0));
+            let p2 = cam.transform_point(cgmath::Point3::new(0.0, 0.0, 0.0));
             // println!("{:?}", p2);
         }
 
@@ -110,7 +109,9 @@ impl<'a, 'b, R: gfx::Resources> gfx_app::Application<R> for App<'a, 'b, R> {
         world.register::<Vel>();
         world.register::<rendering::Material>();
         world.add_resource::<MouseEvent>(Default::default());
-        world.add_resource::<rendering::Screen>(rendering::Screen { size: window_targets.size});
+        world.add_resource::<rendering::Screen>(rendering::Screen {
+            size: window_targets.size,
+        });
 
         let mut dispatcher = DispatcherBuilder::new()
             // .with(SysA, "sys_vel", &[])
@@ -157,7 +158,17 @@ impl<'a, 'b, R: gfx::Resources> gfx_app::Application<R> for App<'a, 'b, R> {
 
         let renderer = rendering::Renderer::new(factory, backend, window_targets);
 
-        let mgr = manager::ResourceManager::new(factory);
+        use manager::*;
+        let mut ctx = Ctx::new(factory);
+        println!("current path {:?}", std::env::current_dir());
+        let mut store = Store::new(StoreOpt::default()).expect("store creation");
+        use std::path::Path;
+
+        let my_resource = store.get::<FromFS>(&Path::new("shader/cube.hlsl").into(), &mut ctx);
+        println!("loaded {:?}", my_resource);
+
+        let my_resource = store.get::<FromMem>(&"shader/cube.hlsl".into(), &mut ctx);
+        println!("loaded {:?}", my_resource);
 
         App {
             world,
