@@ -47,6 +47,8 @@ use specs::prelude::*;
 mod gfx_app;
 mod shade;
 
+mod manager;
+
 mod rendering;
 mod transform;
 use transform::*;
@@ -72,14 +74,14 @@ impl<'a> System<'a> for PickSystem {
         for pos in (&pos).join() {
             let cam = rendering::cam(1.33f32) * rendering::default_view() * pos.0;
             let p2 = cam.transform_point(cgmath::Point3::new(0.0,0.0,0.0));
-            println!("{:?}", p2);
+            // println!("{:?}", p2);
         }
 
         let p: cgmath::Point3<f32> =
             cgmath::Point3::new(mouse.position.0 as f32, mouse.position.1 as f32, 0.0);
         let cam = rendering::cam(1.33f32) * rendering::default_view();
         let p2 = cam.invert().unwrap().transform_point(p);
-        println!("{:?} {:?}", p, p2);
+        // println!("{:?} {:?}", p, p2);
     }
 }
 
@@ -108,14 +110,15 @@ impl<'a, 'b, R: gfx::Resources> gfx_app::Application<R> for App<'a, 'b, R> {
         world.register::<Vel>();
         world.register::<rendering::Material>();
         world.add_resource::<MouseEvent>(Default::default());
+        world.add_resource::<rendering::Screen>(rendering::Screen { size: window_targets.size});
 
         let mut dispatcher = DispatcherBuilder::new()
-            .with(SysA, "sys_vel", &[])
+            // .with(SysA, "sys_vel", &[])
             .with(PickSystem, "sys_pick", &[])
             .with(
                 specs_hierarchy::HierarchySystem::<Parent>::new(),
                 "parent_hierarchy_system",
-                &["sys_vel"],
+                &[],
             )
             .with(
                 TransformSystem::new(),
@@ -154,6 +157,8 @@ impl<'a, 'b, R: gfx::Resources> gfx_app::Application<R> for App<'a, 'b, R> {
 
         let renderer = rendering::Renderer::new(factory, backend, window_targets);
 
+        let mgr = manager::ResourceManager::new(factory);
+
         App {
             world,
             dispatcher,
@@ -167,6 +172,7 @@ impl<'a, 'b, R: gfx::Resources> gfx_app::Application<R> for App<'a, 'b, R> {
     }
 
     fn on_resize(&mut self, window_targets: gfx_app::WindowTargets<R>) {
+        self.world.write_resource::<rendering::Screen>().size = window_targets.size;
         self.renderer.on_resize(window_targets);
     }
 

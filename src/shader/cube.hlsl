@@ -5,10 +5,12 @@ struct VsOutput {
 
 cbuffer Locals {
 	float4x4 u_Transform;
+	float4 u_Screen;
     float4 u_Color;
 };
 
 VsOutput Vertex(float4 pos: a_Pos, float2 tc: a_TexCoord) {
+    pos.xy /= u_Screen.xy;
     VsOutput output = {
     	mul(u_Transform, pos),
     	tc,

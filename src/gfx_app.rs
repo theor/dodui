@@ -29,6 +29,7 @@ pub struct WindowTargets<R: gfx::Resources> {
     pub color: gfx::handle::RenderTargetView<R, ColorFormat>,
     pub depth: gfx::handle::DepthStencilView<R, DepthFormat>,
     pub aspect_ratio: f32,
+    pub size: (u32,u32),
 }
 
 pub enum Backend {
@@ -121,6 +122,7 @@ A: Sized + ApplicationBase<gfx_device_gl::Resources, gfx_device_gl::CommandBuffe
         color: main_color,
         depth: main_depth,
         aspect_ratio: current_size.width as f32 / current_size.height as f32,
+        size: current_size.into(),
     });
 
     let mut harness = Harness::new();
@@ -148,6 +150,7 @@ A: Sized + ApplicationBase<gfx_device_gl::Resources, gfx_device_gl::CommandBuffe
                                 color: new_color,
                                 depth: new_depth,
                                 aspect_ratio: size.width as f32 / size.height as f32,
+                                size: size.into(),
                             });
                         }
                     }
@@ -197,6 +200,7 @@ A: Sized + ApplicationBase<gfx_device_dx11::Resources, D3D11CommandBuffer>
         color: main_color,
         depth: main_depth,
         aspect_ratio: window.size.0 as f32 / window.size.1 as f32,
+        size: (window.size.0 as u32, window.size.1 as u32),
     });
     let mut device = gfx_device_dx11::Deferred::from(device);
 
@@ -238,6 +242,7 @@ A: Sized + ApplicationBase<gfx_device_dx11::Resources, D3D11CommandBuffer>
                         color: new_color,
                         depth: new_depth,
                         aspect_ratio: width as f32 / height as f32,
+                        size: (width as u32, height as u32),
                     });
                 },
                 Err(e) => error!("Resize failed: {}", e),

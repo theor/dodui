@@ -11,14 +11,19 @@ use crate::shade;
 use crate::transform::GlobalTransform;
 use specs::prelude::*;
 
+#[derive(Debug, Default)]
+pub struct Screen {
+    pub size: (u32, u32),
+}
+
 pub struct SysRender<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> {
     bundle: &'a Bundle<R, pipe::Data<R>>,
     encoder: &'a mut gfx::Encoder<R, C>,
 }
 
 impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'a, R, C> {
-    type SystemData = (ReadStorage<'a, GlobalTransform>, ReadStorage<'a, Material>);
-    fn run(&mut self, (pos, mat): Self::SystemData) {
+    type SystemData = (ReadStorage<'a, GlobalTransform>, ReadStorage<'a, Material>, Read<'a, Screen>);
+    fn run(&mut self, (pos, mat, screen): Self::SystemData) {
         self.encoder
             .clear(&self.bundle.data.out_color, [0.1, 0.2, 0.3, 1.0]);
         self.encoder.clear_depth(&self.bundle.data.out_depth, 1.0);
@@ -29,6 +34,7 @@ impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'
             let locals = Locals {
                 transform: (vp * m).into(),
                 color: mat.color.into(),
+                screen: [screen.size.0 as f32, screen.size.1 as f32, 0.0, 0.0]
             };
             self.encoder
                 .update_constant_buffer(&self.bundle.data.locals, &locals);
@@ -49,12 +55,14 @@ gfx_defines! {
 
     constant Locals {
         transform: [[f32; 4]; 4] = "u_Transform",
+        screen: [f32; 4] = "u_Screen",
         color: [f32; 4] = "u_Color",
     }
 
     pipeline pipe {
         vbuf: gfx::VertexBuffer<Vertex> = (),
         transform: gfx::Global<[[f32; 4]; 4]> = "u_Transform",
+        screen: gfx::Global<[f32; 4]> = "u_Screen",
         locals: gfx::ConstantBuffer<Locals> = "Locals",
         color: gfx::TextureSampler<[f32; 4]> = "t_Color",
         out_color: gfx::RenderTarget<ColorFormat> = "Target0",
@@ -83,6 +91,7 @@ impl<R: gfx::Resources> Renderer<R> {
         window_targets: gfx_app::WindowTargets<R>,
     ) -> Self {
         use gfx::traits::FactoryExt;
+        println!("size {:?}", window_targets.size);
 
         let vs = shade::Source {
             glsl_120: include_bytes!("../shader/cube_120.glslv"),
@@ -105,12 +114,13 @@ impl<R: gfx::Resources> Renderer<R> {
             ..shade::Source::empty()
         };
 
+        let v = 1;
         let vertex_data = [
             // top (0, 0, 1)
             Vertex::new([0, 0, 0], [0, 0]),
-            Vertex::new([1, 0, 0], [1, 0]),
-            Vertex::new([1, 1, 0], [1, 1]),
-            Vertex::new([0, 1, 0], [0, 1]),
+            Vertex::new([v, 0, 0], [1, 0]),
+            Vertex::new([v, v, 0], [1, 1]),
+            Vertex::new([0, v, 0], [0, 1]),
         ];
 
         let index_data: &[u16] = &[
@@ -151,6 +161,7 @@ impl<R: gfx::Resources> Renderer<R> {
         let data = pipe::Data {
             vbuf: vbuf,
             transform: (proj * default_view()).into(),
+            screen: [window_targets.size.0 as f32, window_targets.size.1 as f32, 0.0, 0.0],
             locals: factory.create_constant_buffer(1),
             color: (texture_view, factory.create_sampler(sinfo)),
             out_color: window_targets.color,
