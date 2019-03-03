@@ -34,8 +34,8 @@ pub struct FromFS(pub Vec<u8>);
 #[derive(Debug)]
 pub struct ShaderSet {
     version: u8,
-    vs: SimpleKey,
-    ps: SimpleKey,
+    vs: FromFS,
+    ps: FromFS,
 }
 
 pub struct Ctx {
@@ -112,8 +112,8 @@ impl Load<Ctx, SimpleKey> for ShaderSet {
                 //     .unwrap();
                 Ok(Loaded::with_deps(ShaderSet {
                     version: 0,
-                    vs: vk.clone(),
-                    ps: pk.clone(),
+                    vs: *vs.borrow(),
+                    ps: *ps.borrow(),
                 }, vec![vk, pk]))
             }
 

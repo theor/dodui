@@ -154,12 +154,12 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
         let sinfo =
             texture::SamplerInfo::new(texture::FilterMethod::Bilinear, texture::WrapMode::Clamp);
 
-        let pso = factory
-            .create_pipeline_simple(
-                vs.select(backend).unwrap(),
-                ps.select(backend).unwrap(),
-                pipe::new(),
-            );
+        // let pso = factory
+        //     .create_pipeline_simple(
+        //         vs.select(backend).unwrap(),
+        //         ps.select(backend).unwrap(),
+        //         pipe::new(),
+        //     );
 
         let proj = cam(window_targets.aspect_ratio);
         // cgmath::perspective(Deg(45.0f32), window_targets.aspect_ratio, 1.0, 10.0);
@@ -178,7 +178,7 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
             factory,
             slice,
             data,
-            pso: pso.ok(),
+            pso: None,
             // bundle: Bundle::new(slice, pso, data),
         }
     }
@@ -190,6 +190,24 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
         encoder: &mut gfx::Encoder<R, C>,
         store: &mut crate::manager::ResourceManager,
     ) {
+        use crate::manager::*;
+        use gfx::traits::FactoryExt;
+        let mut ctx = Ctx::new();
+        match store.get::<ShaderSet>(&"shader/cube.hlsl".into(), &mut ctx){
+            Ok(x) => {
+                
+                let s = x.borrow_mut();
+                println!("s {:?}", s);
+                self.pso = self.factory.create_pipeline_simple(
+                    &s.vs,
+                    &s.ps,
+                //         &(*vs.borrow()).0,
+                //         &(*ps.borrow()).0,
+                        crate::rendering::pipe::new(),
+                    );
+            },
+            _ => {},
+        }
         match self.pso.as_ref() {
             Some(pso) => {
                 let mut sys = SysRender {
