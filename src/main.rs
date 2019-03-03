@@ -85,8 +85,8 @@ impl<'a> System<'a> for PickSystem {
 }
 
 //----------------------------------------
-struct App<'a, 'b, R: gfx::Resources> {
-    renderer: rendering::Renderer<R>,
+struct App<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>> {
+    renderer: rendering::Renderer<R, F>,
     world: World,
     dispatcher: Dispatcher<'a, 'b>,
     store: manager::ResourceManager,
@@ -97,8 +97,8 @@ struct MouseEvent {
     position: (i32, i32),
 }
 
-impl<'a, 'b, R: gfx::Resources> gfx_app::Application<R> for App<'a, 'b, R> {
-    fn new<F: gfx::Factory<R>>(
+impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>> gfx_app::Application<R, F> for App<'a, 'b, R, F> {
+    fn new(
         mut factory: F,
         backend: shade::Backend,
         window_targets: gfx_app::WindowTargets<R>,

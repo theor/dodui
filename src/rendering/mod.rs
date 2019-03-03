@@ -80,15 +80,16 @@ impl Vertex {
     }
 }
 
-pub struct Renderer<R: gfx::Resources> {
+pub struct Renderer<R: gfx::Resources, F: gfx::Factory<R>> {
+    factory: F,
     // bundle: Bundle<R, pipe::Data<R>>,
     slice: gfx::Slice<R>,
     data: pipe::Data<R>,
     pso: Option<i32>,
 }
 
-impl<R: gfx::Resources> Renderer<R> {
-    pub fn new<F: gfx::Factory<R>>(
+impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
+    pub fn new(
         mut factory: F,
         backend: shade::Backend,
         window_targets: gfx_app::WindowTargets<R>,
@@ -172,6 +173,7 @@ impl<R: gfx::Resources> Renderer<R> {
         };
 
         Renderer {
+            factory,
             slice,
             data,
             pso: None,

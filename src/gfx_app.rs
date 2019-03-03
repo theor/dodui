@@ -69,8 +69,8 @@ pub trait Factory<R: gfx::Resources>: gfx::Factory<R> {
     fn create_encoder(&mut self) -> gfx::Encoder<R, Self::CommandBuffer>;
 }
 
-pub trait ApplicationBase<R: gfx::Resources, C: gfx::CommandBuffer<R>> {
-    fn new<F>(mut f: F, b: shade::Backend, w: WindowTargets<R>) -> Self where F: Factory<R, CommandBuffer = C>;
+pub trait ApplicationBase<R: gfx::Resources, C: gfx::CommandBuffer<R>, F: gfx::Factory<R>> {
+    fn new(mut f: F, b: shade::Backend, w: WindowTargets<R>) -> Self where F: Factory<R, CommandBuffer = C>;
     fn render<D>(&mut self, d: &mut D) where D: gfx::Device<Resources = R, CommandBuffer = C>;
     fn get_exit_key() -> Option<winit::VirtualKeyCode>;
     fn on(&mut self, e:winit::WindowEvent);
@@ -86,7 +86,7 @@ impl Factory<gfx_device_gl::Resources> for gfx_device_gl::Factory {
 }
 
 pub fn launch_gl3<A>(window: winit::WindowBuilder) where
-A: Sized + ApplicationBase<gfx_device_gl::Resources, gfx_device_gl::CommandBuffer>
+A: Sized + ApplicationBase<gfx_device_gl::Resources, gfx_device_gl::CommandBuffer, gfx_device_gl::Factory>
 {
     use gfx::traits::Device;
 
@@ -184,7 +184,7 @@ impl Factory<gfx_device_dx11::Resources> for gfx_device_dx11::Factory {
 
 #[cfg(target_os = "windows")]
 pub fn launch_d3d11<A>(wb: winit::WindowBuilder) where
-A: Sized + ApplicationBase<gfx_device_dx11::Resources, D3D11CommandBuffer>
+A: Sized + ApplicationBase<gfx_device_dx11::Resources, D3D11CommandBuffer, gfx_device_dx11::Factory>
 {
     use gfx::traits::{Device, Factory};
 
@@ -383,8 +383,8 @@ pub type DefaultResources = gfx_device_metal::Resources;
 #[cfg(feature = "vulkan")]
 pub type DefaultResources = gfx_device_vulkan::Resources;
 
-pub trait Application<R: gfx::Resources>: Sized {
-    fn new<F: gfx::Factory<R>>(mut f: F, b:shade::Backend, wt:WindowTargets<R>) -> Self;
+pub trait Application<R: gfx::Resources, F: gfx::Factory<R>>: Sized {
+    fn new(mut f: F, b:shade::Backend, wt:WindowTargets<R>) -> Self;
     fn render<C: gfx::CommandBuffer<R>>(&mut self, e:&mut gfx::Encoder<R, C>);
 
     fn get_exit_key() -> Option<winit::VirtualKeyCode> {
@@ -396,17 +396,17 @@ pub trait Application<R: gfx::Resources>: Sized {
     }
     fn on(&mut self, _event: winit::WindowEvent) {}
 
-    fn launch_simple(name: &str) where Self: Application<DefaultResources> {
+    fn launch_simple(name: &str) where Self: Application<DefaultResources, gfx_device_dx11::Factory> {
         let wb = winit::WindowBuilder::new().with_title(name);
-        <Self as Application<DefaultResources>>::launch_default(wb)
+        <Self as Application<DefaultResources, gfx_device_dx11::Factory>>::launch_default(wb)
     }
     #[cfg(all(not(target_os = "windows"), not(feature = "vulkan"), not(feature = "metal")))]
     fn launch_default(wb: winit::WindowBuilder) where Self: Application<DefaultResources> {
-        launch_gl3::<Wrap<_, _, Self>>(wb);
+        launch_gl3::<Wrap<_, _, Self, gfx_device_gl::Factory>>(wb);
     }
     #[cfg(all(target_os = "windows", not(feature = "vulkan")))]
-    fn launch_default(wb: winit::WindowBuilder) where Self: Application<DefaultResources> {
-        launch_d3d11::<Wrap<_, _, Self>>(wb);
+    fn launch_default(wb: winit::WindowBuilder) where Self: Application<DefaultResources, gfx_device_dx11::Factory> {
+        launch_d3d11::<Wrap<_, _, Self, gfx_device_dx11::Factory>>(wb);
     }
     #[cfg(feature = "metal")]
     fn launch_default(wb: winit::WindowBuilder) where Self: Application<DefaultResources> {
@@ -418,22 +418,25 @@ pub trait Application<R: gfx::Resources>: Sized {
     }
 }
 
-pub struct Wrap<R: gfx::Resources, C, A> {
+pub struct Wrap<R: gfx::Resources, C, A, F: Factory<R, CommandBuffer = C>>
+    where C: gfx::CommandBuffer<R> {
     encoder: gfx::Encoder<R, C>,
     app: A,
+    _f: std::marker::PhantomData<F>,
 }
 
-impl<R, C, A> ApplicationBase<R, C> for Wrap<R, C, A>
+impl<R, C, A, F> ApplicationBase<R, C, F> for Wrap<R, C, A, F>
     where R: gfx::Resources,
           C: gfx::CommandBuffer<R>,
-          A: Application<R>
+          A: Application<R, F>,
+          F: Factory<R, CommandBuffer = C>
 {
-    fn new<F>(mut factory: F, backend: shade::Backend, window_targets: WindowTargets<R>) -> Self
-        where F: Factory<R, CommandBuffer = C>
+    fn new(mut factory: F, backend: shade::Backend, window_targets: WindowTargets<R>) -> Self
     {
         Wrap {
             encoder: factory.create_encoder(),
             app: A::new(factory, backend, window_targets),
+            _f: std::marker::PhantomData
         }
     }
 
