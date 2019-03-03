@@ -156,8 +156,7 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
                 vs.select(backend).unwrap(),
                 ps.select(backend).unwrap(),
                 pipe::new(),
-            )
-            .unwrap();
+            );
 
         let proj = cam(window_targets.aspect_ratio);
         // cgmath::perspective(Deg(45.0f32), window_targets.aspect_ratio, 1.0, 10.0);
@@ -176,7 +175,7 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
             factory,
             slice,
             data,
-            pso: None,
+            pso: pso.into(),
             // bundle: Bundle::new(slice, pso, data),
         }
     }
