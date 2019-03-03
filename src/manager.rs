@@ -27,15 +27,15 @@ impl fmt::Display for Error {
 }
 
 // The resource we want to take from a file.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FromFS(pub Vec<u8>);
 
 // The resource we want to compute from memory.
 #[derive(Debug)]
 pub struct ShaderSet {
-    version: u8,
-    vs: FromFS,
-    ps: FromFS,
+    pub version: u8,
+    pub vs: FromFS,
+    pub ps: FromFS,
 }
 
 pub struct Ctx {
@@ -96,6 +96,7 @@ impl Load<Ctx, SimpleKey> for ShaderSet {
         // ensure we only accept logical resources
         match key {
             SimpleKey::Logical(key) => {
+                use std::clone::Clone;
                 println!("Load logical {}", key);
                 use std::path::Path;
                 let vk = Path::new("data/vertex.fx").into();
@@ -110,10 +111,12 @@ impl Load<Ctx, SimpleKey> for ShaderSet {
                 //         crate::rendering::pipe::new(),
                 //     )
                 //     .unwrap();
+                let vs = vs.borrow().clone();
+                let ps = ps.borrow().clone();
                 Ok(Loaded::with_deps(ShaderSet {
-                    version: 0,
-                    vs: *vs.borrow(),
-                    ps: *ps.borrow(),
+                    version: 1,
+                    vs: vs,
+                    ps: ps,
                 }, vec![vk, pk]))
             }
 

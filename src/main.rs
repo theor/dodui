@@ -171,16 +171,16 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>> gfx_app::Application<R, F>
         // let my_resource = store.get::<FromFS>(&Path::new("shader/cube.hlsl").into(), &mut ctx);
         // println!("loaded {:?}", my_resource);
 
-        let my_resource = store
-            .get::<ShaderSet>(&"shader/cube.hlsl".into(), &mut ctx)
-            .unwrap();
-        println!("loaded {:?}", my_resource);
-        {
-            // let mut m = my_resource.borrow_mut();
-            // let asd =  (*m);
-            // m.0 = m.0 + 1;
-        }
-        println!("loaded {:?}", my_resource);
+        // let my_resource = store
+        //     .get::<ShaderSet>(&"shader/cube.hlsl".into(), &mut ctx)
+        //     .unwrap();
+        // println!("loaded {:?}", my_resource);
+        // {
+        //     // let mut m = my_resource.borrow_mut();
+        //     // let asd =  (*m);
+        //     // m.0 = m.0 + 1;
+        // }
+        // println!("loaded {:?}", my_resource);
 
         App {
             world,

@@ -1,12 +1,12 @@
 mod material;
 pub use material::*;
 
+use crate::gfx_app;
+use crate::gfx_app::{ColorFormat, DepthFormat};
+use crate::shade;
 use cgmath::{Deg, Matrix4, Point3, Vector3};
 use gfx;
 use gfx::{texture, Bundle};
-use crate::gfx_app::{ColorFormat, DepthFormat};
-use crate::gfx_app;
-use crate::shade;
 
 use crate::transform::GlobalTransform;
 use specs::prelude::*;
@@ -25,7 +25,11 @@ pub struct SysRender<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 }
 
 impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'a, R, C> {
-    type SystemData = (ReadStorage<'a, GlobalTransform>, ReadStorage<'a, Material>, Read<'a, Screen>);
+    type SystemData = (
+        ReadStorage<'a, GlobalTransform>,
+        ReadStorage<'a, Material>,
+        Read<'a, Screen>,
+    );
     fn run(&mut self, (pos, mat, screen): Self::SystemData) {
         self.encoder
             .clear(&self.data.out_color, [0.1, 0.2, 0.3, 1.0]);
@@ -37,7 +41,7 @@ impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'
             let locals = Locals {
                 transform: (vp * m).into(),
                 color: mat.color.into(),
-                screen: [screen.size.0 as f32, screen.size.1 as f32, 0.0, 0.0]
+                screen: [screen.size.0 as f32, screen.size.1 as f32, 0.0, 0.0],
             };
             self.encoder
                 .update_constant_buffer(&self.data.locals, &locals);
@@ -89,6 +93,7 @@ pub struct Renderer<R: gfx::Resources, F: gfx::Factory<R>> {
     slice: gfx::Slice<R>,
     data: pipe::Data<R>,
     pso: Option<gfx::PipelineState<R, pipe::Meta>>,
+    version: u8,
 }
 
 impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
@@ -167,7 +172,12 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
         let data = pipe::Data {
             vbuf: vbuf,
             transform: (proj * default_view()).into(),
-            screen: [window_targets.size.0 as f32, window_targets.size.1 as f32, 0.0, 0.0],
+            screen: [
+                window_targets.size.0 as f32,
+                window_targets.size.1 as f32,
+                0.0,
+                0.0,
+            ],
             locals: factory.create_constant_buffer(1),
             color: (texture_view, factory.create_sampler(sinfo)),
             out_color: window_targets.color,
@@ -179,6 +189,7 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
             slice,
             data,
             pso: None,
+            version: 0,
             // bundle: Bundle::new(slice, pso, data),
         }
     }
@@ -193,20 +204,26 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
         use crate::manager::*;
         use gfx::traits::FactoryExt;
         let mut ctx = Ctx::new();
-        match store.get::<ShaderSet>(&"shader/cube.hlsl".into(), &mut ctx){
+        match store.get::<ShaderSet>(&"shader/cube.hlsl".into(), &mut ctx) {
             Ok(x) => {
-                
                 let s = x.borrow_mut();
-                println!("s {:?}", s);
-                self.pso = self.factory.create_pipeline_simple(
-                    &s.vs,
-                    &s.ps,
-                //         &(*vs.borrow()).0,
-                //         &(*ps.borrow()).0,
-                        crate::rendering::pipe::new(),
-                    );
-            },
-            _ => {},
+                let v = { s.version };
+                if v != self.version {
+                    self.version = v;
+                    println!("s {:?}", s);
+                    self.pso = self
+                        .factory
+                        .create_pipeline_simple(
+                            &s.vs.0,
+                            &s.ps.0,
+                            //         &(*vs.borrow()).0,
+                            //         &(*ps.borrow()).0,
+                            crate::rendering::pipe::new(),
+                        )
+                        .ok();
+                }
+            }
+            e => { println!("Error {:?}", e); }
         }
         match self.pso.as_ref() {
             Some(pso) => {
@@ -217,8 +234,8 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
                     encoder: encoder,
                 };
                 sys.run_now(res);
-            },
-            None => {},
+            }
+            None => {}
         }
     }
 

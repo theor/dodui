@@ -11,7 +11,7 @@
             "program": "${workspaceFolder}/target/debug/peg.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/src",
             "environment": [],
             "externalConsole": true
         }
