@@ -110,6 +110,8 @@ pub struct FromFS {
 #[derive(Debug)]
 pub struct ShaderSet {
   pub version: u8,
+  pub vx: Vec<u8>,
+  pub px: Vec<u8>,
 }
 
 pub struct Ctx {}
@@ -135,15 +137,13 @@ impl Load<Ctx, SimpleKey> for FromFS {
         let mut fh = File::open(path).map_err(Error::IOError)?;
         let mut buf = Vec::default();
         fh.read_to_end(&mut buf).expect("Load failed");
-        let dep = SimpleKey::Logical(Path::new("shader/cube.hlsl").to_owned());
-        storage.get::<ShaderSet>(&dep, ctx).unwrap();
-        Ok(Loaded::with_deps(
+        // storage.get::<ShaderSet>(&dep, ctx).unwrap();
+        Ok(Loaded::without_dep(
           FromFS {
             bytes: buf,
             version: 1,
           }
-          .into(),
-          vec![dep],
+          .into()
         ))
       }
 
@@ -209,7 +209,19 @@ impl Load<Ctx, SimpleKey> for ShaderSet {
           .args(&["/C", "compile.cmd"])
           .output()
           .expect("failed to execute process");
-        Ok(Loaded::without_dep(ShaderSet { version: 1 }))
+        let mut fh = File::open("data/vertex.fx").map_err(Error::IOError)?;
+        let mut vx = Vec::default();
+        fh.read_to_end(&mut vx).expect("Load failed");
+
+        let mut fh = File::open("data/pixel.fx").map_err(Error::IOError)?;
+        let mut px = Vec::default();
+        fh.read_to_end(&mut px).expect("Load failed");
+          
+        Ok(Loaded::without_dep(ShaderSet {
+          version: 1,
+          vx: vx,
+          px: px,
+        }))
       }
 
       SimpleKey::Path(_) => Err(Error::CannotLoadFromFS),

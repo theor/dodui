@@ -183,19 +183,18 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
         use crate::manager::*;
         use gfx::traits::FactoryExt;
         let mut ctx = Ctx::new();
-        match (
-            store.get::<FromFS>(&SimpleKey::Path("data/vertex.fx".into()), &mut ctx),
-            store.get::<FromFS>(&SimpleKey::Path("data/pixel.fx".into()), &mut ctx)) {
-            (Ok(vx), Ok(px)) => {
-                let vx = vx.borrow_mut();
-                let px = px.borrow_mut();
-                if vx.version != self.version || px.version != self.version {
-                    self.version = std::cmp::max(vx.version, px.version);
+        
+        let dep = SimpleKey::Logical(("shader/cube.hlsl").into());
+        match store.get::<ShaderSet>(&dep, &mut ctx) {
+            Ok(set) => {
+                let set = set.borrow_mut();
+                if set.version != self.version {
+                    self.version = set.version;
                     self.pso = self
                         .factory
                         .create_pipeline_simple(
-                            &vx.bytes,
-                            &px.bytes,
+                            &set.vx,
+                            &set.px,
                             crate::rendering::pipe::new(),
                         )
                         .ok();
