@@ -1,140 +1,238 @@
 use std::fmt;
 use std::fs::File;
 use std::io::{self, Read};
-pub use warmy::{Load, Loaded, SimpleKey, Storage};
+pub use warmy::{Load, Loaded, Storage};
 pub use warmy::{Store, StoreOpt};
 
-// pub struct Id(u32);
+use std::fmt::Display;
+use std::path::{Component, Path, PathBuf};
 
-// pub trait Resource {}
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum SimpleKey {
+  /// A key to a resource living on the filesystem.
+  Path(PathBuf),
+  /// A key to a resource living in memory or computed on the fly.
+  Logical(PathBuf),
+}
+
+impl SimpleKey {
+  pub fn from_path<P>(path: P) -> Self
+  where
+    P: AsRef<Path>,
+  {
+    SimpleKey::Path(path.as_ref().to_owned())
+  }
+}
+
+impl<'a> From<&'a Path> for SimpleKey {
+  fn from(path: &Path) -> Self {
+    match path.extension().and_then(|x| x.to_str()) {
+      None => SimpleKey::from_path(path),
+      Some("hlsl") => SimpleKey::Logical(path.to_path_buf()),
+      _ => SimpleKey::from_path(path),
+    }
+  }
+}
+
+impl From<PathBuf> for SimpleKey {
+  fn from(path: PathBuf) -> Self {
+    SimpleKey::Path(path)
+  }
+}
+
+impl Into<Option<PathBuf>> for SimpleKey {
+  fn into(self) -> Option<PathBuf> {
+    match self {
+      SimpleKey::Path(path) => Some(path),
+      SimpleKey::Logical(path) => Some(path),
+    }
+  }
+}
+
+impl Display for SimpleKey {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    match *self {
+      SimpleKey::Path(ref path) => write!(f, "{}", path.display()),
+      SimpleKey::Logical(ref name) => write!(f, "{}", name.display()),
+    }
+  }
+}
+
+impl warmy::Key for SimpleKey {
+  fn prepare_key(self, root: &Path) -> Self {
+    match self {
+      SimpleKey::Path(path) => SimpleKey::Path(vfs_substitute_path(&path, root)),
+      SimpleKey::Logical(path) => SimpleKey::Logical(vfs_substitute_path(&path, root)),
+    }
+  }
+}
+/// Substitute a VFS path by a real one.
+fn vfs_substitute_path(path: &Path, root: &Path) -> PathBuf {
+  let mut components = path.components().peekable();
+  let root_components = root.components();
+
+  match components.peek() {
+    Some(&Component::RootDir) => {
+      // drop the root component
+      root_components.chain(components.skip(1)).collect()
+    }
+
+    _ => root_components.chain(components).collect(),
+  }
+}
 
 // Possible errors that might happen.
 #[derive(Debug)]
 pub enum Error {
-    CannotLoadFromFS,
-    CannotLoadFromLogical,
-    IOError(io::Error),
+  CannotLoadFromFS,
+  CannotLoadFromLogical,
+  IOError(io::Error),
 }
 
 impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match *self {
-            Error::CannotLoadFromFS => f.write_str("cannot load from file system"),
-            Error::CannotLoadFromLogical => f.write_str("cannot load from logical"),
-            Error::IOError(ref e) => write!(f, "IO error: {}", e),
-        }
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    match *self {
+      Error::CannotLoadFromFS => f.write_str("cannot load from file system"),
+      Error::CannotLoadFromLogical => f.write_str("cannot load from logical"),
+      Error::IOError(ref e) => write!(f, "IO error: {}", e),
     }
+  }
 }
 
 // The resource we want to take from a file.
 #[derive(Debug, Clone)]
-pub struct FromFS(pub Vec<u8>);
+pub struct FromFS {
+  pub bytes: Vec<u8>,
+  pub version: u8,
+}
 
 // The resource we want to compute from memory.
 #[derive(Debug)]
 pub struct ShaderSet {
-    pub version: u8,
-    pub vs: FromFS,
-    pub ps: FromFS,
+  pub version: u8,
 }
 
-pub struct Ctx {
-    // f: Arc<F>,
-}
+pub struct Ctx {}
 
 impl Ctx {
-    pub fn new() -> Self {
-        Ctx {}
-    }
+  pub fn new() -> Self {
+    Ctx {}
+  }
 }
 
 impl Load<Ctx, SimpleKey> for FromFS {
-    type Error = Error;
+  type Error = Error;
 
-    fn load(
-        key: SimpleKey,
-        storage: &mut Storage<Ctx, SimpleKey>,
-        _: &mut Ctx,
-    ) -> Result<Loaded<Self, SimpleKey>, Self::Error> {
-        // as we only accept filesystem here, we’ll ensure the key is a filesystem one
-        match key {
-            SimpleKey::Path(path) => {
-                println!("Load Physical {:?}", path);
-                let mut fh = File::open(path).map_err(Error::IOError)?;
-                let mut buf = Vec::default();
-                fh.read_to_end(&mut buf);
+  fn load(
+    key: SimpleKey,
+    storage: &mut Storage<Ctx, SimpleKey>,
+    ctx: &mut Ctx,
+  ) -> Result<Loaded<Self, SimpleKey>, Self::Error> {
+    // as we only accept filesystem here, we’ll ensure the key is a filesystem one
+    match key {
+      SimpleKey::Path(path) => {
+        println!("Load Physical {}", path.display());
+        let mut fh = File::open(path).map_err(Error::IOError)?;
+        let mut buf = Vec::default();
+        fh.read_to_end(&mut buf).expect("Load failed");
+        let dep = SimpleKey::Logical(Path::new("shader/cube.hlsl").to_owned());
+        storage.get::<ShaderSet>(&dep, ctx).unwrap();
+        Ok(Loaded::with_deps(
+          FromFS {
+            bytes: buf,
+            version: 1,
+          }
+          .into(),
+          vec![dep],
+        ))
+      }
 
-                Ok(FromFS(buf).into())
-            }
-
-            SimpleKey::Logical(_) => Err(Error::CannotLoadFromLogical),
-        }
+      SimpleKey::Logical(_) => Err(Error::CannotLoadFromLogical),
     }
+  }
+  fn reload(
+    &self,
+    key: SimpleKey,
+    storage: &mut Storage<Ctx, SimpleKey>,
+    ctx: &mut Ctx,
+  ) -> Result<Self, Error> {
+    let prev = storage.get_by::<FromFS, AlwaysFail>(&key, ctx, AlwaysFail);
+    let prev_version = prev.map(|x| x.borrow().version).unwrap_or(0);
+    let l: Result<Loaded<Self, SimpleKey>, Error> =
+      <FromFS as warmy::load::Load<Ctx, SimpleKey, ()>>::load(key, storage, ctx);
+    l.map(|mut lr| {
+      lr.res.version = prev_version + 1;
+      println!("  new version {}", lr.res.version);
+      lr.res
+    })
+  }
 }
 
 struct AlwaysFail;
-impl Load<Ctx, SimpleKey, AlwaysFail> for ShaderSet {
-    type Error = Error;
+impl Load<Ctx, SimpleKey, AlwaysFail> for FromFS {
+  type Error = Error;
 
-    fn load(
-        key: SimpleKey,
-        storage: &mut Storage<Ctx, SimpleKey>,
-        ctx: &mut Ctx,
-    ) -> Result<Loaded<Self, SimpleKey>, Self::Error> {
-        Err(Error::CannotLoadFromFS)
-    }
+  fn load(
+    _key: SimpleKey,
+    _storage: &mut Storage<Ctx, SimpleKey>,
+    _ctx: &mut Ctx,
+  ) -> Result<Loaded<Self, SimpleKey>, Self::Error> {
+    Err(Error::CannotLoadFromFS)
+  }
+}
+
+impl Load<Ctx, SimpleKey, AlwaysFail> for ShaderSet {
+  type Error = Error;
+
+  fn load(
+    _key: SimpleKey,
+    _storage: &mut Storage<Ctx, SimpleKey>,
+    _ctx: &mut Ctx,
+  ) -> Result<Loaded<Self, SimpleKey>, Self::Error> {
+    Err(Error::CannotLoadFromFS)
+  }
 }
 
 impl Load<Ctx, SimpleKey> for ShaderSet {
-    type Error = Error;
+  type Error = Error;
 
-    fn load(
-        key: SimpleKey,
-        storage: &mut Storage<Ctx, SimpleKey>,
-        ctx: &mut Ctx,
-    ) -> Result<Loaded<Self, SimpleKey>, Error> {
-        // ensure we only accept logical resources
-        match key {
-            SimpleKey::Logical(key) => {
-                use std::clone::Clone;
-                println!("Load logical {}", key);
-                use std::path::Path;
-                let vk = Path::new("data/vertex.fx").into();
-                let pk = Path::new("data/pixel.fx").into();
-                let vs = storage.get::<FromFS>(&vk, ctx).unwrap();
-                let ps = storage.get::<FromFS>(&pk, ctx).unwrap();
-                // use gfx::traits::FactoryExt;
-                // ctx.f
-                //     .create_pipeline_simple(
-                //         &(*vs.borrow()).0,
-                //         &(*ps.borrow()).0,
-                //         crate::rendering::pipe::new(),
-                //     )
-                //     .unwrap();
-                let vs = vs.borrow().clone();
-                let ps = ps.borrow().clone();
-                Ok(Loaded::with_deps(ShaderSet {
-                    version: 1,
-                    vs: vs,
-                    ps: ps,
-                }, vec![vk, pk]))
-            }
+  fn load(
+    key: SimpleKey,
+    _storage: &mut Storage<Ctx, SimpleKey>,
+    _ctx: &mut Ctx,
+  ) -> Result<Loaded<Self, SimpleKey>, Error> {
+    match key {
+      SimpleKey::Logical(key) => {
+        println!("Load logical {}", key.display());
+        use std::process::Command;
+        Command::new("cmd")
+          .args(&["/C", "compile.cmd"])
+          .output()
+          .expect("failed to execute process");
+        Ok(Loaded::without_dep(ShaderSet { version: 1 }))
+      }
 
-            SimpleKey::Path(_) => Err(Error::CannotLoadFromFS),
-        }
+      SimpleKey::Path(_) => Err(Error::CannotLoadFromFS),
     }
+  }
 
-    fn reload(
-        &self,
-        key: SimpleKey,
-        storage: &mut Storage<Ctx, SimpleKey>,
-        ctx: &mut Ctx,
-    ) -> Result<Self, Error> {
-        let prev = storage.get_by::<ShaderSet, AlwaysFail>(&key, ctx, AlwaysFail);
-        let prev_version = prev.map(|x| x.borrow().version).unwrap_or(0);
-        let l: Result<Loaded<Self, SimpleKey>, Error> = <ShaderSet as warmy::load::Load<Ctx, SimpleKey, ()>>::load(key, storage, ctx);
-        l.map(|mut lr| { lr.res.version = prev_version + 1; println!("  new version {}", lr.res.version); lr.res })
-    }
+  fn reload(
+    &self,
+    key: SimpleKey,
+    storage: &mut Storage<Ctx, SimpleKey>,
+    ctx: &mut Ctx,
+  ) -> Result<Self, Error> {
+    println!("reload shader set");
+    let prev = storage.get_by::<ShaderSet, AlwaysFail>(&key, ctx, AlwaysFail);
+    let prev_version = prev.map(|x| x.borrow().version).unwrap_or(0);
+    let l: Result<Loaded<Self, SimpleKey>, Error> =
+      <ShaderSet as warmy::load::Load<Ctx, SimpleKey, ()>>::load(key, storage, ctx);
+    l.map(|mut lr| {
+      lr.res.version = prev_version + 1;
+      println!("  new version {}", lr.res.version);
+      lr.res
+    })
+  }
 }
 
 pub type ResourceManager = Store<Ctx, SimpleKey>;

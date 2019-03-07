@@ -105,27 +105,6 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
         use gfx::traits::FactoryExt;
         println!("size {:?}", window_targets.size);
 
-        let vs = shade::Source {
-            glsl_120: include_bytes!("../shader/cube_120.glslv"),
-            glsl_150: include_bytes!("../shader/cube_150_core.glslv"),
-            glsl_es_100: include_bytes!("../shader/cube_100_es.glslv"),
-            glsl_es_300: include_bytes!("../shader/cube_300_es.glslv"),
-            hlsl_40: include_bytes!("../data/vertex.fx"),
-            msl_11: include_bytes!("../shader/cube_vertex.metal"),
-            vulkan: include_bytes!("../data/vert.spv"),
-            ..shade::Source::empty()
-        };
-        let ps = shade::Source {
-            glsl_120: include_bytes!("../shader/cube_120.glslf"),
-            glsl_150: include_bytes!("../shader/cube_150_core.glslf"),
-            glsl_es_100: include_bytes!("../shader/cube_100_es.glslf"),
-            glsl_es_300: include_bytes!("../shader/cube_300_es.glslf"),
-            hlsl_40: include_bytes!("../data/pixel.fx"),
-            msl_11: include_bytes!("../shader/cube_frag.metal"),
-            vulkan: include_bytes!("../data/frag.spv"),
-            ..shade::Source::empty()
-        };
-
         let v = 100;
         let vertex_data = [
             // top (0, 0, 1)
@@ -204,20 +183,19 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
         use crate::manager::*;
         use gfx::traits::FactoryExt;
         let mut ctx = Ctx::new();
-        match store.get::<ShaderSet>(&"shader/cube.hlsl".into(), &mut ctx) {
-            Ok(x) => {
-                let s = x.borrow_mut();
-                let v = { s.version };
-                if v != self.version {
-                    self.version = v;
-                    println!("s {:?}", s);
+        match (
+            store.get::<FromFS>(&SimpleKey::Path("data/vertex.fx".into()), &mut ctx),
+            store.get::<FromFS>(&SimpleKey::Path("data/pixel.fx".into()), &mut ctx)) {
+            (Ok(vx), Ok(px)) => {
+                let vx = vx.borrow_mut();
+                let px = px.borrow_mut();
+                if vx.version != self.version || px.version != self.version {
+                    self.version = std::cmp::max(vx.version, px.version);
                     self.pso = self
                         .factory
                         .create_pipeline_simple(
-                            &s.vs.0,
-                            &s.ps.0,
-                            //         &(*vs.borrow()).0,
-                            //         &(*ps.borrow()).0,
+                            &vx.bytes,
+                            &px.bytes,
                             crate::rendering::pipe::new(),
                         )
                         .ok();
