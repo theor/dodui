@@ -125,8 +125,8 @@ impl<'a> System<'a> for StyleSystem {
 
     #[allow(dead_code)]
     fn run(&mut self, (pseudo, bg, mut mat): Self::SystemData) {
-        for (pseudo, bg, mut mat) in (&pseudo, &bg, &mut mat).join() {
-            mat.color = if pseudo.hover { bg.color } else { bg.color / 2 };
+        for (pseudo, bg, mut mat) in (pseudo.maybe(), &bg, &mut mat).join() {
+            mat.color = if pseudo.map_or(false, |v| v.hover) { bg.color } else { bg.color / 2 };
         }
     }
 }
@@ -184,11 +184,11 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>> gfx_app::Application<R, F>
 
         let e1 = world
             .create_entity()
-            .with(Vel(0.01))
             .with(Transform::new(0.0, 0.0))
             .with(StyleBackground::from_color(255, 0, 0, 255))
             .with(<Pseudo as Default>::default())
             .with(rendering::Material::default())
+            .with(Vel(0.01))
             .build();
         let e2 = world
             .create_entity()
@@ -201,18 +201,18 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>> gfx_app::Application<R, F>
             .build();
         let _e3 = world
             .create_entity()
+            .with(Transform::new(200.0, 400.0))
             .with(StyleBackground::from_color(0, 0, 255, 255))
             .with(<Pseudo as Default>::default())
             .with(rendering::Material::default())
             .with(Parent { entity: e1 })
-            .with(Transform::new(200.0, 400.0))
             .build();
 
         let _e4 = world
             .create_entity()
-            .with(Transform::new(400.0, 700.0))
+            .with(Transform::new(400.0, 400.0))
             .with(StyleBackground::from_color(255, 255, 0, 255))
-            .with(<Pseudo as Default>::default())
+            // .with(<Pseudo as Default>::default())
             .with(rendering::Material::default())
             .with(Parent { entity: e2 })
             .build();
