@@ -4,9 +4,9 @@ pub use material::*;
 use crate::gfx_app;
 use crate::gfx_app::{ColorFormat, DepthFormat};
 use crate::shade;
-use cgmath::{Deg, Matrix4, Point3, Vector3};
+use cgmath::{Matrix4, Point3, Vector3};
 use gfx;
-use gfx::{texture, Bundle};
+use gfx::texture;
 
 use crate::transform::GlobalTransform;
 use specs::prelude::*;
@@ -17,7 +17,6 @@ pub struct Screen {
 }
 
 pub struct SysRender<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> {
-    // bundle: &'a Bundle<R, pipe::Data<R>>,
     slice: &'a gfx::Slice<R>,
     data: &'a pipe::Data<R>,
     pso: &'a gfx::PipelineState<R, pipe::Meta>,
@@ -28,9 +27,9 @@ impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'
     type SystemData = (
         ReadStorage<'a, GlobalTransform>,
         ReadStorage<'a, Material>,
-        Read<'a, Screen>,
+        // Read<'a, Screen>,
     );
-    fn run(&mut self, (pos, mat, screen): Self::SystemData) {
+    fn run(&mut self, (pos, mat): Self::SystemData) {
         self.encoder
             .clear(&self.data.out_color, [0.1, 0.2, 0.3, 1.0]);
         self.encoder.clear_depth(&self.data.out_depth, 1.0);
@@ -41,7 +40,6 @@ impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'
             let locals = Locals {
                 transform: (vp * m).into(),
                 color: mat.color.into(),
-                screen: [screen.size.0 as f32, screen.size.1 as f32],
                 size: [200.0, 100.0],
             };
             self.encoder
@@ -51,10 +49,6 @@ impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'
     }
 }
 
-// Declare the vertex format suitable for drawing,
-// as well as the constants used by the shaders
-// and the pipeline state object format.
-// Notice the use of FixedPoint.
 gfx_defines! {
     vertex Vertex {
         pos: [f32; 4] = "a_Pos",
@@ -64,7 +58,6 @@ gfx_defines! {
     constant Locals {
         transform: [[f32; 4]; 4] = "u_Transform",
         color: [f32; 4] = "u_Color",
-        screen: [f32; 2] = "u_Screen",
         size: [f32; 2] = "u_Size",
     }
 
@@ -72,7 +65,6 @@ gfx_defines! {
         vbuf: gfx::VertexBuffer<Vertex> = (),
         transform: gfx::Global<[[f32; 4]; 4]> = "u_Transform",
         screen: gfx::Global<[f32; 2]> = "u_Screen",
-        size: gfx::Global<[f32; 2]> = "u_Size",
         locals: gfx::ConstantBuffer<Locals> = "Locals",
         color: gfx::TextureSampler<[f32; 4]> = "t_Color",
         out_color: gfx::RenderTarget<ColorFormat> = "Target0",
@@ -92,7 +84,6 @@ impl Vertex {
 
 pub struct Renderer<R: gfx::Resources, F: gfx::Factory<R>> {
     factory: F,
-    // bundle: Bundle<R, pipe::Data<R>>,
     slice: gfx::Slice<R>,
     data: pipe::Data<R>,
     pso: Option<gfx::PipelineState<R, pipe::Meta>>,
@@ -102,7 +93,7 @@ pub struct Renderer<R: gfx::Resources, F: gfx::Factory<R>> {
 impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
     pub fn new(
         mut factory: F,
-        backend: shade::Backend,
+        _backend: shade::Backend,
         window_targets: gfx_app::WindowTargets<R>,
     ) -> Self {
         use gfx::traits::FactoryExt;
@@ -110,7 +101,6 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
 
         let v = 1;
         let vertex_data = [
-            // top (0, 0, 1)
             Vertex::new([0, 0, 0], [0, 0]),
             Vertex::new([v, 0, 0], [1, 0]),
             Vertex::new([v, v, 0], [1, 1]),
@@ -118,13 +108,7 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
         ];
 
         let index_data: &[u16] = &[
-            0, 1, 2, 2, 3,
-            0, // top
-               // 4, 5, 6, 6, 7, 4, // bottom
-               // 8, 9, 10, 10, 11, 8, // right
-               // 12, 13, 14, 14, 15, 12, // left
-               // 16, 17, 18, 18, 19, 16, // front
-               // 20, 21, 22, 22, 23, 20, // back
+            0, 1, 2, 2, 3, 0, 
         ];
 
         let (vbuf, slice) = factory.create_vertex_buffer_with_slice(&vertex_data, index_data);
@@ -141,15 +125,7 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
         let sinfo =
             texture::SamplerInfo::new(texture::FilterMethod::Bilinear, texture::WrapMode::Clamp);
 
-        // let pso = factory
-        //     .create_pipeline_simple(
-        //         vs.select(backend).unwrap(),
-        //         ps.select(backend).unwrap(),
-        //         pipe::new(),
-        //     );
-
         let proj = cam(window_targets.size);
-        // cgmath::perspective(Deg(45.0f32), window_targets.aspect_ratio, 1.0, 10.0);
 
         let data = pipe::Data {
             vbuf: vbuf,
@@ -158,7 +134,6 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
                 window_targets.size.0 as f32,
                 window_targets.size.1 as f32,
             ],
-            size: [ 400.0,400.0 ],
             locals: factory.create_constant_buffer(1),
             color: (texture_view, factory.create_sampler(sinfo)),
             out_color: window_targets.color,

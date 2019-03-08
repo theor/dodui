@@ -6,9 +6,10 @@ struct VsOutput {
 cbuffer Locals {
 	float4x4 u_Transform;
     float4 u_Color;
-	float2 u_Screen;
 	float2 u_Size;
 };
+
+float2 u_Screen;
 
 VsOutput Vertex(float4 pos: a_Pos, float2 tc: a_TexCoord) {
     pos.xy = pos.xy * u_Size;

@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#![allow(dead_code)]
 use crate::shade;
 
 #[cfg(not(any(feature = "vulkan", feature = "metal")))]
@@ -29,7 +30,7 @@ pub struct WindowTargets<R: gfx::Resources> {
     pub color: gfx::handle::RenderTargetView<R, ColorFormat>,
     pub depth: gfx::handle::DepthStencilView<R, DepthFormat>,
     pub aspect_ratio: f32,
-    pub size: (u32,u32),
+    pub size: (u32, u32),
 }
 
 pub enum Backend {
@@ -58,9 +59,11 @@ impl Harness {
 impl Drop for Harness {
     fn drop(&mut self) {
         let time_end = self.start.elapsed();
-        println!("Avg frame time: {} ms",
-                 ((time_end.as_secs() * 1000) as f64 +
-                  (time_end.subsec_nanos() / 1_000_000) as f64) / self.num_frames);
+        println!(
+            "Avg frame time: {} ms",
+            ((time_end.as_secs() * 1000) as f64 + (time_end.subsec_nanos() / 1_000_000) as f64)
+                / self.num_frames
+        );
     }
 }
 
@@ -70,13 +73,16 @@ pub trait Factory<R: gfx::Resources>: gfx::Factory<R> {
 }
 
 pub trait ApplicationBase<R: gfx::Resources, C: gfx::CommandBuffer<R>, F: gfx::Factory<R>> {
-    fn new(mut f: F, b: shade::Backend, w: WindowTargets<R>) -> Self where F: Factory<R, CommandBuffer = C>;
-    fn render<D>(&mut self, d: &mut D) where D: gfx::Device<Resources = R, CommandBuffer = C>;
+    fn new(f: F, b: shade::Backend, w: WindowTargets<R>) -> Self
+    where
+        F: Factory<R, CommandBuffer = C>;
+    fn render<D>(&mut self, d: &mut D)
+    where
+        D: gfx::Device<Resources = R, CommandBuffer = C>;
     fn get_exit_key() -> Option<winit::VirtualKeyCode>;
-    fn on(&mut self, e:winit::WindowEvent);
+    fn on(&mut self, e: winit::WindowEvent);
     fn on_resize(&mut self, window_targets: WindowTargets<R>);
 }
-
 
 impl Factory<gfx_device_gl::Resources> for gfx_device_gl::Factory {
     type CommandBuffer = gfx_device_gl::CommandBuffer;
@@ -85,16 +91,20 @@ impl Factory<gfx_device_gl::Resources> for gfx_device_gl::Factory {
     }
 }
 
-pub fn launch_gl3<A>(window: winit::WindowBuilder) where
-A: Sized + ApplicationBase<gfx_device_gl::Resources, gfx_device_gl::CommandBuffer, gfx_device_gl::Factory>
+pub fn launch_gl3<A>(window: winit::WindowBuilder)
+where
+    A: Sized
+        + ApplicationBase<
+            gfx_device_gl::Resources,
+            gfx_device_gl::CommandBuffer,
+            gfx_device_gl::Factory,
+        >,
 {
     use gfx::traits::Device;
 
     env_logger::init();
     #[cfg(target_os = "emscripten")]
-    let gl_version = glutin::GlRequest::Specific(
-        glutin::Api::WebGl, (2, 0),
-    );
+    let gl_version = glutin::GlRequest::Specific(glutin::Api::WebGl, (2, 0));
     #[cfg(not(target_os = "emscripten"))]
     let gl_version = glutin::GlRequest::GlThenGles {
         opengl_version: (3, 2), // TODO: try more versions
@@ -104,9 +114,9 @@ A: Sized + ApplicationBase<gfx_device_gl::Resources, gfx_device_gl::CommandBuffe
         .with_gl(gl_version)
         .with_vsync(true);
     let mut events_loop = glutin::EventsLoop::new();
-    let (window, mut device, mut factory, main_color, main_depth) =
+    let (window, mut device, factory, main_color, main_depth) =
         gfx_window_glutin::init::<ColorFormat, DepthFormat>(window, context, &events_loop)
-	    .expect("Failed to create window");
+            .expect("Failed to create window");
     let mut current_size = window
         .get_inner_size()
         .unwrap()
@@ -118,12 +128,16 @@ A: Sized + ApplicationBase<gfx_device_gl::Resources, gfx_device_gl::CommandBuffe
     } else {
         shade::Backend::Glsl(shade_lang)
     };
-    let mut app = A::new(factory, backend, WindowTargets {
-        color: main_color,
-        depth: main_depth,
-        aspect_ratio: current_size.width as f32 / current_size.height as f32,
-        size: current_size.into(),
-    });
+    let mut app = A::new(
+        factory,
+        backend,
+        WindowTargets {
+            color: main_color,
+            depth: main_depth,
+            aspect_ratio: current_size.width as f32 / current_size.height as f32,
+            size: current_size.into(),
+        },
+    );
 
     let mut harness = Harness::new();
     let mut running = true;
@@ -133,11 +147,12 @@ A: Sized + ApplicationBase<gfx_device_gl::Resources, gfx_device_gl::CommandBuffe
                 match event {
                     winit::WindowEvent::CloseRequested => running = false,
                     winit::WindowEvent::KeyboardInput {
-                        input: winit::KeyboardInput {
-                            state: winit::ElementState::Pressed,
-                            virtual_keycode: key,
-                            ..
-                        },
+                        input:
+                            winit::KeyboardInput {
+                                state: winit::ElementState::Pressed,
+                                virtual_keycode: key,
+                                ..
+                            },
                         ..
                     } if key == A::get_exit_key() => running = false,
                     winit::WindowEvent::Resized(size) => {
@@ -168,7 +183,6 @@ A: Sized + ApplicationBase<gfx_device_gl::Resources, gfx_device_gl::CommandBuffe
     }
 }
 
-
 #[cfg(target_os = "windows")]
 pub type D3D11CommandBuffer = gfx_device_dx11::CommandBuffer<gfx_device_dx11::DeferredContext>;
 #[cfg(target_os = "windows")]
@@ -183,25 +197,32 @@ impl Factory<gfx_device_dx11::Resources> for gfx_device_dx11::Factory {
 }
 
 #[cfg(target_os = "windows")]
-pub fn launch_d3d11<A>(wb: winit::WindowBuilder) where
-A: Sized + ApplicationBase<gfx_device_dx11::Resources, D3D11CommandBuffer, gfx_device_dx11::Factory>
+pub fn launch_d3d11<A>(wb: winit::WindowBuilder)
+where
+    A: Sized
+        + ApplicationBase<gfx_device_dx11::Resources, D3D11CommandBuffer, gfx_device_dx11::Factory>,
 {
     use gfx::traits::{Device, Factory};
 
     env_logger::init();
     let mut events_loop = winit::EventsLoop::new();
-    let (mut window, device, mut factory, main_color) =
+    let (window, device, mut factory, main_color) =
         gfx_window_dxgi::init::<ColorFormat>(wb, &events_loop).unwrap();
-    let main_depth = factory.create_depth_stencil_view_only(window.size.0, window.size.1)
-                            .unwrap();
+    let main_depth = factory
+        .create_depth_stencil_view_only(window.size.0, window.size.1)
+        .unwrap();
 
     let backend = shade::Backend::Hlsl(device.get_shader_model());
-    let mut app = A::new(factory, backend, WindowTargets {
-        color: main_color,
-        depth: main_depth,
-        aspect_ratio: window.size.0 as f32 / window.size.1 as f32,
-        size: (window.size.0 as u32, window.size.1 as u32),
-    });
+    let mut app = A::new(
+        factory,
+        backend,
+        WindowTargets {
+            color: main_color,
+            depth: main_depth,
+            aspect_ratio: window.size.0 as f32 / window.size.1 as f32,
+            size: (window.size.0 as u32, window.size.1 as u32),
+        },
+    );
     let mut device = gfx_device_dx11::Deferred::from(device);
 
     let mut harness = Harness::new();
@@ -213,11 +234,12 @@ A: Sized + ApplicationBase<gfx_device_dx11::Resources, D3D11CommandBuffer, gfx_d
                 match event {
                     winit::WindowEvent::CloseRequested => running = false,
                     winit::WindowEvent::KeyboardInput {
-                        input: winit::KeyboardInput {
-                            state: winit::ElementState::Pressed,
-                            virtual_keycode: key,
-                            ..
-                        },
+                        input:
+                            winit::KeyboardInput {
+                                state: winit::ElementState::Pressed,
+                                virtual_keycode: key,
+                                ..
+                            },
                         ..
                     } if key == A::get_exit_key() => return,
                     winit::WindowEvent::Resized(size) => {
@@ -228,7 +250,7 @@ A: Sized + ApplicationBase<gfx_device_dx11::Resources, D3D11CommandBuffer, gfx_d
                             // working around the borrow checker: window is already borrowed here
                             new_size = Some(size);
                         }
-                    },
+                    }
                     _ => app.on(event),
                 }
             }
@@ -256,7 +278,6 @@ A: Sized + ApplicationBase<gfx_device_dx11::Resources, D3D11CommandBuffer, gfx_d
     }
 }
 
-
 #[cfg(feature = "metal")]
 impl Factory<gfx_device_metal::Resources> for gfx_device_metal::Factory {
     type CommandBuffer = gfx_device_metal::CommandBuffer;
@@ -266,25 +287,32 @@ impl Factory<gfx_device_metal::Resources> for gfx_device_metal::Factory {
 }
 
 #[cfg(feature = "metal")]
-pub fn launch_metal<A>(wb: winit::WindowBuilder) where
-A: Sized + ApplicationBase<gfx_device_metal::Resources, gfx_device_metal::CommandBuffer>
+pub fn launch_metal<A>(wb: winit::WindowBuilder)
+where
+    A: Sized + ApplicationBase<gfx_device_metal::Resources, gfx_device_metal::CommandBuffer>,
 {
-    use gfx::traits::{Device, Factory};
     use gfx::texture::Size;
+    use gfx::traits::{Device, Factory};
 
     env_logger::init();
     let mut events_loop = winit::EventsLoop::new();
-    let (window, mut device, mut factory, main_color) = gfx_window_metal::init::<ColorFormat>(wb, &events_loop)
-                                                                                .unwrap();
+    let (window, mut device, mut factory, main_color) =
+        gfx_window_metal::init::<ColorFormat>(wb, &events_loop).unwrap();
     let (width, height): (u32, u32) = window.get_inner_size().unwrap().into();
-    let main_depth = factory.create_depth_stencil_view_only(width as Size, height as Size).unwrap();
+    let main_depth = factory
+        .create_depth_stencil_view_only(width as Size, height as Size)
+        .unwrap();
 
     let backend = shade::Backend::Msl(device.get_shader_model());
-    let mut app = A::new(&mut factory, backend, WindowTargets {
-        color: main_color,
-        depth: main_depth,
-        aspect_ratio: width as f32 / height as f32
-    });
+    let mut app = A::new(
+        &mut factory,
+        backend,
+        WindowTargets {
+            color: main_color,
+            depth: main_depth,
+            aspect_ratio: width as f32 / height as f32,
+        },
+    );
 
     let mut harness = Harness::new();
     let mut running = true;
@@ -294,16 +322,17 @@ A: Sized + ApplicationBase<gfx_device_metal::Resources, gfx_device_metal::Comman
                 match event {
                     winit::WindowEvent::CloseRequested => running = false,
                     winit::WindowEvent::KeyboardInput {
-                        input: winit::KeyboardInput {
-                            state: winit::ElementState::Pressed,
-                            virtual_keycode: key,
-                            ..
-                        },
+                        input:
+                            winit::KeyboardInput {
+                                state: winit::ElementState::Pressed,
+                                virtual_keycode: key,
+                                ..
+                            },
                         ..
                     } if key == A::get_exit_key() => return,
                     winit::WindowEvent::Resized(_size) => {
                         warn!("TODO: resize on Metal");
-                    },
+                    }
                     _ => app.on(event),
                 }
             }
@@ -315,34 +344,42 @@ A: Sized + ApplicationBase<gfx_device_metal::Resources, gfx_device_metal::Comman
     }
 }
 
-
 #[cfg(feature = "vulkan")]
 impl Factory<gfx_device_vulkan::Resources> for gfx_device_vulkan::Factory {
     type CommandBuffer = gfx_device_vulkan::CommandBuffer;
-    fn create_encoder(&mut self) -> gfx::Encoder<gfx_device_vulkan::Resources, Self::CommandBuffer> {
+    fn create_encoder(
+        &mut self,
+    ) -> gfx::Encoder<gfx_device_vulkan::Resources, Self::CommandBuffer> {
         self.create_command_buffer().into()
     }
 }
 
 #[cfg(feature = "vulkan")]
-pub fn launch_vulkan<A>(wb: winit::WindowBuilder) where
-A: Sized + ApplicationBase<gfx_device_vulkan::Resources, gfx_device_vulkan::CommandBuffer>
+pub fn launch_vulkan<A>(wb: winit::WindowBuilder)
+where
+    A: Sized + ApplicationBase<gfx_device_vulkan::Resources, gfx_device_vulkan::CommandBuffer>,
 {
-    use gfx::traits::{Device, Factory};
     use gfx::texture::Size;
+    use gfx::traits::{Device, Factory};
 
     env_logger::init();
     let mut events_loop = winit::EventsLoop::new();
     let (mut win, mut factory) = gfx_window_vulkan::init::<ColorFormat>(wb, &events_loop);
     let (width, height) = win.get_size();
-    let main_depth = factory.create_depth_stencil::<DepthFormat>(width as Size, height as Size).unwrap();
+    let main_depth = factory
+        .create_depth_stencil::<DepthFormat>(width as Size, height as Size)
+        .unwrap();
 
     let backend = shade::Backend::Vulkan;
-    let mut app = A::new(&mut factory, backend, WindowTargets {
-        color: win.get_any_target(),
-        depth: main_depth.2,
-        aspect_ratio: width as f32 / height as f32, //TODO
-    });
+    let mut app = A::new(
+        &mut factory,
+        backend,
+        WindowTargets {
+            color: win.get_any_target(),
+            depth: main_depth.2,
+            aspect_ratio: width as f32 / height as f32, //TODO
+        },
+    );
 
     let mut harness = Harness::new();
     let mut running = true;
@@ -352,16 +389,17 @@ A: Sized + ApplicationBase<gfx_device_vulkan::Resources, gfx_device_vulkan::Comm
                 match event {
                     winit::WindowEvent::CloseRequested => running = false,
                     winit::WindowEvent::KeyboardInput {
-                        input: winit::KeyboardInput {
-                            state: winit::ElementState::Pressed,
-                            virtual_keycode: key,
-                            ..
-                        },
+                        input:
+                            winit::KeyboardInput {
+                                state: winit::ElementState::Pressed,
+                                virtual_keycode: key,
+                                ..
+                            },
                         ..
                     } if key == A::get_exit_key() => return,
                     winit::WindowEvent::Resized(_size) => {
                         warn!("TODO: resize on Vulkan");
-                    },
+                    }
                     _ => app.on(event),
                 }
             }
@@ -373,8 +411,11 @@ A: Sized + ApplicationBase<gfx_device_vulkan::Resources, gfx_device_vulkan::Comm
     }
 }
 
-
-#[cfg(all(not(target_os = "windows"), not(feature = "vulkan"), not(feature = "metal")))]
+#[cfg(all(
+    not(target_os = "windows"),
+    not(feature = "vulkan"),
+    not(feature = "metal")
+))]
 pub type DefaultResources = gfx_device_gl::Resources;
 #[cfg(all(target_os = "windows", not(feature = "vulkan")))]
 pub type DefaultResources = gfx_device_dx11::Resources;
@@ -384,64 +425,86 @@ pub type DefaultResources = gfx_device_metal::Resources;
 pub type DefaultResources = gfx_device_vulkan::Resources;
 
 pub trait Application<R: gfx::Resources, F: gfx::Factory<R>>: Sized {
-    fn new(mut f: F, b:shade::Backend, wt:WindowTargets<R>) -> Self;
-    fn render<C: gfx::CommandBuffer<R>>(&mut self, e:&mut gfx::Encoder<R, C>);
+    fn new(f: F, b: shade::Backend, wt: WindowTargets<R>) -> Self;
+    fn render<C: gfx::CommandBuffer<R>>(&mut self, e: &mut gfx::Encoder<R, C>);
 
     fn get_exit_key() -> Option<winit::VirtualKeyCode> {
         Some(winit::VirtualKeyCode::Escape)
     }
-    fn on_resize(&mut self, wt:WindowTargets<R>) {}
+    fn on_resize(&mut self, _wt: WindowTargets<R>) {}
     fn on_resize_ext(&mut self, targets: WindowTargets<R>) {
         self.on_resize(targets);
     }
     fn on(&mut self, _event: winit::WindowEvent) {}
 
-    fn launch_simple(name: &str) where Self: Application<DefaultResources, gfx_device_dx11::Factory> {
+    fn launch_simple(name: &str)
+    where
+        Self: Application<DefaultResources, gfx_device_dx11::Factory>,
+    {
         let wb = winit::WindowBuilder::new().with_title(name);
         <Self as Application<DefaultResources, gfx_device_dx11::Factory>>::launch_default(wb)
     }
-    #[cfg(all(not(target_os = "windows"), not(feature = "vulkan"), not(feature = "metal")))]
-    fn launch_default(wb: winit::WindowBuilder) where Self: Application<DefaultResources> {
+    #[cfg(all(
+        not(target_os = "windows"),
+        not(feature = "vulkan"),
+        not(feature = "metal")
+    ))]
+    fn launch_default(wb: winit::WindowBuilder)
+    where
+        Self: Application<DefaultResources>,
+    {
         launch_gl3::<Wrap<_, _, Self, gfx_device_gl::Factory>>(wb);
     }
     #[cfg(all(target_os = "windows", not(feature = "vulkan")))]
-    fn launch_default(wb: winit::WindowBuilder) where Self: Application<DefaultResources, gfx_device_dx11::Factory> {
+    fn launch_default(wb: winit::WindowBuilder)
+    where
+        Self: Application<DefaultResources, gfx_device_dx11::Factory>,
+    {
         launch_d3d11::<Wrap<_, _, Self, gfx_device_dx11::Factory>>(wb);
     }
     #[cfg(feature = "metal")]
-    fn launch_default(wb: winit::WindowBuilder) where Self: Application<DefaultResources> {
+    fn launch_default(wb: winit::WindowBuilder)
+    where
+        Self: Application<DefaultResources>,
+    {
         launch_metal::<Wrap<_, _, Self>>(wb);
     }
     #[cfg(feature = "vulkan")]
-    fn launch_default(wb: winit::WindowBuilder) where Self: Application<DefaultResources> {
+    fn launch_default(wb: winit::WindowBuilder)
+    where
+        Self: Application<DefaultResources>,
+    {
         launch_vulkan::<Wrap<_, _, Self>>(wb);
     }
 }
 
 pub struct Wrap<R: gfx::Resources, C, A, F: Factory<R, CommandBuffer = C>>
-    where C: gfx::CommandBuffer<R> {
+where
+    C: gfx::CommandBuffer<R>,
+{
     encoder: gfx::Encoder<R, C>,
     app: A,
     _f: std::marker::PhantomData<F>,
 }
 
 impl<R, C, A, F> ApplicationBase<R, C, F> for Wrap<R, C, A, F>
-    where R: gfx::Resources,
-          C: gfx::CommandBuffer<R>,
-          A: Application<R, F>,
-          F: Factory<R, CommandBuffer = C>
+where
+    R: gfx::Resources,
+    C: gfx::CommandBuffer<R>,
+    A: Application<R, F>,
+    F: Factory<R, CommandBuffer = C>,
 {
-    fn new(mut factory: F, backend: shade::Backend, window_targets: WindowTargets<R>) -> Self
-    {
+    fn new(mut factory: F, backend: shade::Backend, window_targets: WindowTargets<R>) -> Self {
         Wrap {
             encoder: factory.create_encoder(),
             app: A::new(factory, backend, window_targets),
-            _f: std::marker::PhantomData
+            _f: std::marker::PhantomData,
         }
     }
 
     fn render<D>(&mut self, device: &mut D)
-        where D: gfx::Device<Resources = R, CommandBuffer = C>
+    where
+        D: gfx::Device<Resources = R, CommandBuffer = C>,
     {
         self.app.render(&mut self.encoder);
         self.encoder.flush(device);
@@ -455,8 +518,7 @@ impl<R, C, A, F> ApplicationBase<R, C, F> for Wrap<R, C, A, F>
         self.app.on(event)
     }
 
-    fn on_resize(&mut self, window_targets: WindowTargets<R>)
-    {
+    fn on_resize(&mut self, window_targets: WindowTargets<R>) {
         self.app.on_resize_ext(window_targets);
     }
 }

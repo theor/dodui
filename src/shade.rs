@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 use std::error::Error;
 use std::fmt;
 
@@ -23,6 +22,7 @@ pub use gfx_device_dx11::ShaderModel as DxShaderModel;
 pub use gfx_device_metal::ShaderModel as MetalShaderModel;
 /// Shader backend with version numbers.
 #[derive(Copy, Clone, Debug, PartialEq)]
+#[allow(dead_code)]
 pub enum Backend {
     Glsl(GlslVersion),
     GlslEs(GlslVersion),
@@ -34,6 +34,7 @@ pub enum Backend {
     Vulkan,
 }
 
+#[allow(dead_code)]
 pub const EMPTY: &'static [u8] = &[];
 
 /// A type storing shader source for different graphics APIs and versions.
@@ -73,7 +74,7 @@ impl Error for SelectError {
     }
 }
 
-impl<'a> Source<'a> {
+#[allow(dead_code)] impl<'a> Source<'a> {
     /// Create an empty shader source. Useful for specifying the remaining
     /// structure members upon construction.
     pub fn empty() -> Source<'a> {
