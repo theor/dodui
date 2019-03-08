@@ -83,7 +83,9 @@ impl Vertex {
     }
 }
 
-pub struct Renderer<R: gfx::Resources, F: gfx::Factory<R>> {
+
+
+pub struct Renderer<R: gfx::Resources, F: Clone+gfx::Factory<R>> {
     factory: F,
     slice: gfx::Slice<R>,
     data: pipe::Data<R>,
@@ -91,7 +93,7 @@ pub struct Renderer<R: gfx::Resources, F: gfx::Factory<R>> {
     version: u8,
 }
 
-impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
+impl<R: gfx::Resources, F: Clone+gfx::Factory<R>> Renderer<R, F> {
     pub fn new(
         mut factory: F,
         _backend: shade::Backend,
@@ -140,6 +142,10 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
             out_color: window_targets.color,
             out_depth: window_targets.depth,
         };
+
+        // text
+        use std::clone::Clone;
+        let mut normal_text = gfx_text::new(factory.clone()).unwrap();
 
         Renderer {
             factory,

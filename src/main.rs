@@ -134,7 +134,7 @@ impl<'a> System<'a> for StyleSystem {
 
 
 //----------------------------------------
-struct App<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>> {
+struct App<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>+Clone> {
     renderer: rendering::Renderer<R, F>,
     world: World,
     dispatcher: Dispatcher<'a, 'b>,
@@ -146,7 +146,7 @@ struct MouseEvent {
     position: (i32, i32),
 }
 
-impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>> gfx_app::Application<R, F>
+impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>+Clone> gfx_app::Application<R, F>
     for App<'a, 'b, R, F>
 {
     fn new(
