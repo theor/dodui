@@ -8,7 +8,7 @@ use cgmath::{Matrix4, Point3, Vector3};
 use gfx;
 use gfx::texture;
 
-use crate::transform::GlobalTransform;
+use crate::transform::{GlobalTransform, Transform};
 use specs::prelude::*;
 
 #[derive(Debug, Default)]
@@ -25,22 +25,23 @@ pub struct SysRender<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> {
 
 impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'a, R, C> {
     type SystemData = (
+        ReadStorage<'a, Transform>,
         ReadStorage<'a, GlobalTransform>,
         ReadStorage<'a, Material>,
         // Read<'a, Screen>,
     );
-    fn run(&mut self, (pos, mat): Self::SystemData) {
+    fn run(&mut self, (tr, pos, mat): Self::SystemData) {
         self.encoder
             .clear(&self.data.out_color, [0.1, 0.2, 0.3, 1.0]);
         self.encoder.clear_depth(&self.data.out_depth, 1.0);
         let vp: cgmath::Matrix4<f32> = self.data.transform.into();
 
-        for (pos, mat) in (&pos, &mat).join() {
+        for (tr, pos, mat) in (&tr, &pos, &mat).join() {
             let m = pos.0;
             let locals = Locals {
                 transform: (vp * m).into(),
-                color: mat.color.into(),
-                size: [200.0, 100.0],
+                color: [mat.color.x as f32 / 255.0, mat.color.y as f32 / 255.0, mat.color.z as f32 / 255.0, mat.color.w as f32 / 255.0],
+                size: tr.size.into(),
             };
             self.encoder
                 .update_constant_buffer(&self.data.locals, &locals);

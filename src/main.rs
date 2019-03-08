@@ -52,6 +52,7 @@ mod rendering;
 mod transform;
 use transform::*;
 
+#[allow(dead_code)]
 struct SysA;
 impl<'a> System<'a> for SysA {
     type SystemData = (WriteStorage<'a, Transform>, ReadStorage<'a, Vel>);
@@ -63,28 +64,74 @@ impl<'a> System<'a> for SysA {
     }
 }
 
-struct PickSystem;
-impl<'a> System<'a> for PickSystem {
-    type SystemData = (ReadStorage<'a, GlobalTransform>, Read<'a, MouseEvent>, Read<'a, rendering::Screen>);
-    fn run(&mut self, (pos, mouse, screen): Self::SystemData) {
-        use cgmath::SquareMatrix;
-        use cgmath::Transform;
+#[derive(Debug)]
+pub struct StyleBackground { color: cgmath::Vector4<u8> }
 
-        let cam = rendering::cam(screen.size);
+impl Component for StyleBackground  {
+    type Storage = DenseVecStorage<Self>;
+}
 
-        for pos in (&pos).join() {
-            let cam = cam * rendering::default_view() * pos.0;
-            let p2 = cam.transform_point(cgmath::Point3::new(0.0, 0.0, 0.0));
-            // println!("{:?}", p2);
+impl StyleBackground {
+    pub fn from_color(r:u8, g:u8, b:u8, a:u8) -> Self {        
+        Self {
+            color: cgmath::Vector4::new(r,g,b,a)
         }
-
-        let p: cgmath::Point3<f32> =
-            cgmath::Point3::new(mouse.position.0 as f32, mouse.position.1 as f32, 0.0);
-        let cam = cam * rendering::default_view();
-        let p2 = cam.invert().unwrap().transform_point(p);
-        // println!("{:?} {:?}", p, p2);
     }
 }
+
+#[derive(Debug, Default)]
+pub struct Pseudo { hover: bool }
+
+impl Component for Pseudo  {
+    type Storage = DenseVecStorage<Self>;
+}
+
+
+struct PickSystem;
+impl<'a> System<'a> for PickSystem {
+    type SystemData = (
+        ReadStorage<'a, GlobalTransform>,
+        ReadStorage<'a, Transform>,
+        WriteStorage<'a, Pseudo>,
+        Read<'a, MouseEvent>,
+        Read<'a, rendering::Screen>);
+
+    #[allow(dead_code)]
+    fn run(&mut self, (pos, tr, mut pseudo, mouse, _screen): Self::SystemData) {
+        use cgmath::Transform;
+        let p: cgmath::Point3<f32> =
+            cgmath::Point3::new(mouse.position.0 as f32, mouse.position.1 as f32, 0.0);
+
+        for (pos,tr, mut pseudo) in (&pos, &tr, &mut pseudo).join() {
+            let p2 = pos.0.transform_point(cgmath::Point3::new(0.0, 0.0, 0.0));
+            if p.x as f32 >= p2.x && p.x as f32 <= p2.x + tr.size.x &&
+               p.y as f32 >= p2.y && p.y as f32 <= p2.y + tr.size.y {
+                pseudo.hover = true;
+                // println!("  {:?} {:?}", pos.0, p2);
+            } else {
+                pseudo.hover = false;
+            }
+        }
+    }
+}
+
+struct StyleSystem;
+impl<'a> System<'a> for StyleSystem {
+    type SystemData = (
+        ReadStorage<'a, Pseudo>,
+        ReadStorage<'a, StyleBackground>,
+        WriteStorage<'a, rendering::Material>
+    );
+
+    #[allow(dead_code)]
+    fn run(&mut self, (pseudo, bg, mut mat): Self::SystemData) {
+        for (pseudo, bg, mut mat) in (&pseudo, &bg, &mut mat).join() {
+            mat.color = if pseudo.hover { bg.color } else { bg.color / 2 };
+        }
+    }
+}
+
+
 
 //----------------------------------------
 struct App<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>> {
@@ -103,7 +150,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>> gfx_app::Application<R, F>
     for App<'a, 'b, R, F>
 {
     fn new(
-        mut factory: F,
+        factory: F,
         backend: shade::Backend,
         window_targets: gfx_app::WindowTargets<R>,
     ) -> Self {
@@ -113,14 +160,13 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>> gfx_app::Application<R, F>
         world.register::<Transform>();
         world.register::<Vel>();
         world.register::<rendering::Material>();
-        world.add_resource::<MouseEvent>(Default::default());
+        world.add_resource::<MouseEvent>(MouseEvent { position:(-1,-1) });
         world.add_resource::<rendering::Screen>(rendering::Screen {
             size: window_targets.size,
         });
 
         let mut dispatcher = DispatcherBuilder::new()
             // .with(SysA, "sys_vel", &[])
-            .with(PickSystem, "sys_pick", &[])
             .with(
                 specs_hierarchy::HierarchySystem::<Parent>::new(),
                 "parent_hierarchy_system",
@@ -131,6 +177,8 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>> gfx_app::Application<R, F>
                 "transform_system",
                 &["parent_hierarchy_system"],
             )
+            .with(PickSystem, "sys_pick", &["transform_system"])
+            .with(StyleSystem, "sys_style", &["sys_pick"])
             .build();
         dispatcher.setup(&mut world.res);
 
@@ -138,51 +186,43 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>> gfx_app::Application<R, F>
             .create_entity()
             .with(Vel(0.01))
             .with(Transform::new(0.0, 0.0))
-            .with(rendering::Material::from_color(1.0, 0.0, 0.0, 1.0))
+            .with(StyleBackground::from_color(255, 0, 0, 255))
+            .with(<Pseudo as Default>::default())
+            .with(rendering::Material::default())
             .build();
         let e2 = world
             .create_entity()
-            .with(Transform::new(2.0, 2.0))
-            .with(rendering::Material::from_color(0.0, 1.0, 0.0, 1.0))
+            .with(Transform::new(200.0, 200.0))
+            .with(StyleBackground::from_color(0, 255, 0, 255))
+            .with(<Pseudo as Default>::default())
+            .with(rendering::Material::default())
             .with(Vel(0.005))
             .with(Parent { entity: e1 })
             .build();
         let _e3 = world
             .create_entity()
-            .with(rendering::Material::from_color(0.0, 0.0, 1.0, 1.0))
+            .with(StyleBackground::from_color(0, 0, 255, 255))
+            .with(<Pseudo as Default>::default())
+            .with(rendering::Material::default())
             .with(Parent { entity: e1 })
-            .with(Transform::new(2.0, 4.0))
+            .with(Transform::new(200.0, 400.0))
             .build();
 
         let _e4 = world
             .create_entity()
-            .with(Transform::new(4.0, 7.0))
-            .with(rendering::Material::from_color(1.0, 1.0, 0.0, 1.0))
+            .with(Transform::new(400.0, 700.0))
+            .with(StyleBackground::from_color(255, 255, 0, 255))
+            .with(<Pseudo as Default>::default())
+            .with(rendering::Material::default())
             .with(Parent { entity: e2 })
             .build();
 
         let renderer = rendering::Renderer::new(factory, backend, window_targets);
 
         use manager::*;
-        let mut ctx = Ctx::new();
         println!("current path {:?}", std::env::current_dir());
-        let mut store: manager::ResourceManager =
+        let store: manager::ResourceManager =
             Store::new(StoreOpt::default()).expect("store creation");
-        use std::path::Path;
-
-        // let my_resource = store.get::<FromFS>(&Path::new("shader/cube.hlsl").into(), &mut ctx);
-        // println!("loaded {:?}", my_resource);
-
-        // let my_resource = store
-        //     .get::<ShaderSet>(&"shader/cube.hlsl".into(), &mut ctx)
-        //     .unwrap();
-        // println!("loaded {:?}", my_resource);
-        // {
-        //     // let mut m = my_resource.borrow_mut();
-        //     // let asd =  (*m);
-        //     // m.0 = m.0 + 1;
-        // }
-        // println!("loaded {:?}", my_resource);
 
         App {
             world,
@@ -207,7 +247,14 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>> gfx_app::Application<R, F>
         match event {
             winit::WindowEvent::CursorMoved { position: p, .. } => {
                 let p: (i32, i32) = p.into();
-                self.world.write_resource::<MouseEvent>().position = p;
+                let mut m = self.world.write_resource::<MouseEvent>();
+
+                // hack: a first CursorMoved 0,0 event is sent on start even if the mouse is not in the window
+                if m.position.0 == -1 && m.position.1 == -1 && p.0 == 0 && p.1 == 0 {
+                    m.position = (-2,-2);
+                } else {
+                    m.position = p;
+                }
             }
             _ => (),
         };

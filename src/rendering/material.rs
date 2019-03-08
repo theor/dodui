@@ -4,20 +4,20 @@ use cgmath::Vector4;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Material {
-    pub color: Vector4<f32>,
+    pub color: Vector4<u8>,
 }
 
 impl Default for Material {
     fn default() -> Self {
         Material {
-            color: Vector4::new(1.0, 1.0, 1.0, 1.0)
+            color: Vector4::new(255, 255, 255, 255)
         }
     }
 }
 
 impl Material {
-    pub fn from_color(r:f32, g:f32, b:f32, a:f32) -> Self {        
-        Material {
+    pub fn from_color(r:u8, g:u8, b:u8, a:u8) -> Self {        
+        Self {
             color: Vector4::new(r,g,b,a)
         }
     }

@@ -127,8 +127,8 @@ impl Load<Ctx, SimpleKey> for FromFS {
 
   fn load(
     key: SimpleKey,
-    storage: &mut Storage<Ctx, SimpleKey>,
-    ctx: &mut Ctx,
+    _storage: &mut Storage<Ctx, SimpleKey>,
+    _ctx: &mut Ctx,
   ) -> Result<Loaded<Self, SimpleKey>, Self::Error> {
     // as we only accept filesystem here, we’ll ensure the key is a filesystem one
     match key {
