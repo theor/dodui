@@ -65,20 +65,22 @@ impl<'a> System<'a> for SysA {
 
 struct PickSystem;
 impl<'a> System<'a> for PickSystem {
-    type SystemData = (ReadStorage<'a, GlobalTransform>, Read<'a, MouseEvent>);
-    fn run(&mut self, (pos, mouse): Self::SystemData) {
+    type SystemData = (ReadStorage<'a, GlobalTransform>, Read<'a, MouseEvent>, Read<'a, rendering::Screen>);
+    fn run(&mut self, (pos, mouse, screen): Self::SystemData) {
         use cgmath::SquareMatrix;
         use cgmath::Transform;
 
+        let cam = rendering::cam(screen.size);
+
         for pos in (&pos).join() {
-            let cam = rendering::cam(1.33f32) * rendering::default_view() * pos.0;
+            let cam = cam * rendering::default_view() * pos.0;
             let p2 = cam.transform_point(cgmath::Point3::new(0.0, 0.0, 0.0));
             // println!("{:?}", p2);
         }
 
         let p: cgmath::Point3<f32> =
             cgmath::Point3::new(mouse.position.0 as f32, mouse.position.1 as f32, 0.0);
-        let cam = rendering::cam(1.33f32) * rendering::default_view();
+        let cam = cam * rendering::default_view();
         let p2 = cam.invert().unwrap().transform_point(p);
         // println!("{:?} {:?}", p, p2);
     }

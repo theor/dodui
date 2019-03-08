@@ -41,7 +41,8 @@ impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'
             let locals = Locals {
                 transform: (vp * m).into(),
                 color: mat.color.into(),
-                screen: [screen.size.0 as f32, screen.size.1 as f32, 0.0, 0.0],
+                screen: [screen.size.0 as f32, screen.size.1 as f32],
+                size: [200.0, 100.0],
             };
             self.encoder
                 .update_constant_buffer(&self.data.locals, &locals);
@@ -62,14 +63,16 @@ gfx_defines! {
 
     constant Locals {
         transform: [[f32; 4]; 4] = "u_Transform",
-        screen: [f32; 4] = "u_Screen",
         color: [f32; 4] = "u_Color",
+        screen: [f32; 2] = "u_Screen",
+        size: [f32; 2] = "u_Size",
     }
 
     pipeline pipe {
         vbuf: gfx::VertexBuffer<Vertex> = (),
         transform: gfx::Global<[[f32; 4]; 4]> = "u_Transform",
-        screen: gfx::Global<[f32; 4]> = "u_Screen",
+        screen: gfx::Global<[f32; 2]> = "u_Screen",
+        size: gfx::Global<[f32; 2]> = "u_Size",
         locals: gfx::ConstantBuffer<Locals> = "Locals",
         color: gfx::TextureSampler<[f32; 4]> = "t_Color",
         out_color: gfx::RenderTarget<ColorFormat> = "Target0",
@@ -105,7 +108,7 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
         use gfx::traits::FactoryExt;
         println!("size {:?}", window_targets.size);
 
-        let v = 100;
+        let v = 1;
         let vertex_data = [
             // top (0, 0, 1)
             Vertex::new([0, 0, 0], [0, 0]),
@@ -145,7 +148,7 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
         //         pipe::new(),
         //     );
 
-        let proj = cam(window_targets.aspect_ratio);
+        let proj = cam(window_targets.size);
         // cgmath::perspective(Deg(45.0f32), window_targets.aspect_ratio, 1.0, 10.0);
 
         let data = pipe::Data {
@@ -154,9 +157,8 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
             screen: [
                 window_targets.size.0 as f32,
                 window_targets.size.1 as f32,
-                0.0,
-                0.0,
             ],
+            size: [ 400.0,400.0 ],
             locals: factory.create_constant_buffer(1),
             color: (texture_view, factory.create_sampler(sinfo)),
             out_color: window_targets.color,
@@ -221,7 +223,7 @@ impl<R: gfx::Resources, F: gfx::Factory<R>> Renderer<R, F> {
         self.data.out_depth = window_targets.depth;
 
         // In this example the transform is static except for window resizes.
-        let proj = cam(window_targets.aspect_ratio); // cgmath::perspective(Deg(45.0f32), window_targets.aspect_ratio, 1.0, 10.0);
+        let proj = cam(window_targets.size); // cgmath::perspective(Deg(45.0f32), window_targets.aspect_ratio, 1.0, 10.0);
         self.data.transform = (proj * default_view()).into();
     }
 }
@@ -234,7 +236,6 @@ pub fn default_view() -> Matrix4<f32> {
     )
 }
 
-pub fn cam(w: f32) -> Matrix4<f32> {
-    let f = 1f32;
-    cgmath::ortho(0.0f32, w * f, f, 0.0f32, -1.0f32, 1.0f32)
+pub fn cam((w,h): (u32,u32)) -> Matrix4<f32> {
+    cgmath::ortho(0.0f32, w as f32, h as f32, 0.0f32, -1.0f32, 1.0f32)
 }

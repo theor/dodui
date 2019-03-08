@@ -204,11 +204,20 @@ impl Load<Ctx, SimpleKey> for ShaderSet {
     match key {
       SimpleKey::Logical(key) => {
         println!("Load logical {}", key.display());
+        
         use std::process::Command;
-        Command::new("cmd")
+        use std::io::Write;
+
+        let output = Command::new("cmd")
           .args(&["/C", "compile.cmd"])
           .output()
           .expect("failed to execute process");
+
+        println!("Shader compilation status: {}", output.status);
+        io::stdout().write_all(&output.stdout).unwrap();
+        io::stderr().write_all(&output.stderr).unwrap();
+
+
         let mut fh = File::open("data/vertex.fx").map_err(Error::IOError)?;
         let mut vx = Vec::default();
         fh.read_to_end(&mut vx).expect("Load failed");
