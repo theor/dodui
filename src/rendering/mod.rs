@@ -66,10 +66,12 @@ impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Clone + gfx::Factory<R>
 
             if let Some(text_renderer) = self.text {
                 if let Some(text) = text {
+                    use cgmath::Transform;
+                    let p = m.transform_point(cgmath::Point3::new(0.0,0.0,0.0));
                     text_renderer.add(
-                        "The quick brown fox jumps over the lazy dog", // Text to add
-                        [10, 10],                                      // Position
-                        [0.65, 0.16, 0.16, 1.0],                       // Text color
+                        &text.text, // Text to add
+                        [p.x as i32, p.y as i32],                                      // Position
+                        [0.9, 0.9, 0.9, 1.0],                       // Text color
                     );
                     if let Err(e) = text_renderer.draw(self.encoder, &self.data.out_color) {
                         match e {

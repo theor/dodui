@@ -200,6 +200,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>+Clone> gfx_app::Application<R
             .with(rendering::Material::default())
             .with(Vel(0.005))
             .with(Parent { entity: e1 })
+            .with(rendering::Text {text: "ent 2 child of 1".to_string()})
             .build();
         let _e3 = world
             .create_entity()
@@ -208,6 +209,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>+Clone> gfx_app::Application<R
             .with(<Pseudo as Default>::default())
             .with(rendering::Material::default())
             .with(Parent { entity: e1 })
+            .with(rendering::Text {text: "ent 3 child of 1".to_string()})
             .build();
 
         let _e4 = world
@@ -217,6 +219,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>+Clone> gfx_app::Application<R
             // .with(<Pseudo as Default>::default())
             .with(rendering::Material::default())
             .with(Parent { entity: e2 })
+            .with(rendering::Text {text: "ent 4 child of 2".to_string()})
             .build();
 
         let renderer = rendering::Renderer::new(factory, backend, window_targets);

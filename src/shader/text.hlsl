@@ -13,18 +13,19 @@ VsOutput Vertex(float2 pos: a_Pos, float2 tc: a_TexCoord, float3 world_pos: a_Wo
                 int screen_rel: a_Screen_Rel, float4 color: a_Color) {
 
 
-        // On-screen offset from text origin.
+        // On-screen offset from text origin. 
         float2 v_Screen_Offset = float2(
             2 * pos.x / u_Screen_Size.x - 1,
             1 - 2 * pos.y / u_Screen_Size.y
         );
         float4 v_Screen_Pos = mul(u_Proj, world_pos);
+        screen_rel = 0;  
         float2 v_World_Offset = screen_rel == 0
             // Perspective divide to get normalized device coords.
 
             ? float2 (
-                v_Screen_Pos.x / v_Screen_Pos.z + 1,
-                v_Screen_Pos.y / v_Screen_Pos.z - 1
+                v_Screen_Pos.x * 500,// / v_Screen_Pos.z + 1,
+                v_Screen_Pos.y// / v_Screen_Pos.z - 1
             ) : float2(0.0, 0.0);
 
     VsOutput output = {
