@@ -218,18 +218,22 @@ fn compile(shader_type:ShaderType, path: &Path) -> Result<Vec<u8>, Error> {
   let output_path = get_output_path(&shader_type, path);
   println!("  output path for {:?} {}: {}", shader_type, path.display(), output_path.display());
   let args = match shader_type {
-    ShaderType::Vertex => ["-nologo", "/T","vs_4_0","/E","Vertex","/Fo",output_path.to_str().unwrap(),"shader/cube.hlsl"],
-    ShaderType::Pixel => ["-nologo", "/T","ps_4_0","/E","Pixel","/Fo",output_path.to_str().unwrap(),"shader/cube.hlsl"],
+    ShaderType::Vertex => ["-nologo", "/T","vs_4_0","/E","Vertex","/Fo",output_path.to_str().unwrap(),path.to_str().unwrap()],
+    ShaderType::Pixel => ["-nologo", "/T","ps_4_0","/E","Pixel","/Fo",output_path.to_str().unwrap(),path.to_str().unwrap()],
   };
 
-  let output = Command::new(fxc)
-    .args(&args)
-    .output()
-    .map_err(Error::IOError)?;
+  let mut cmd = Command::new(fxc);
+  let cmd = cmd.args(&args);
+  // let output = cmd
+  //   .output()
+  //   .map_err(Error::IOError)?;
 
-  println!("Shader compilation status: {}", output.status);
-  io::stdout().write_all(&output.stdout).map_err(Error::IOError)?;
-  io::stderr().write_all(&output.stderr).map_err(Error::IOError)?;
+  let status = cmd.status().map_err(Error::IOError)?;
+
+  println!("Shader compilation status: {}", status);
+  
+  // io::stdout().write_all(&output.stdout).map_err(Error::IOError)?;
+  // io::stderr().write_all(&output.stderr).map_err(Error::IOError)?;
 
 
   let mut fh = File::open(output_path).map_err(Error::IOError)?;

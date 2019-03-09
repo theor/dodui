@@ -24,7 +24,7 @@ impl Component for Text {
     type Storage = DenseVecStorage<Self>;
 }
 
-pub struct SysRender<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Clone+gfx::Factory<R>> {
+pub struct SysRender<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Clone + gfx::Factory<R>> {
     slice: &'a gfx::Slice<R>,
     data: &'a pipe::Data<R>,
     pso: &'a gfx::PipelineState<R, pipe::Meta>,
@@ -32,7 +32,9 @@ pub struct SysRender<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Clone+g
     text: &'a mut Option<gfx_text::Renderer<R, F>>,
 }
 
-impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Clone+gfx::Factory<R>> System<'a> for SysRender<'a, R, C, F> {
+impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Clone + gfx::Factory<R>> System<'a>
+    for SysRender<'a, R, C, F>
+{
     type SystemData = (
         ReadStorage<'a, Transform>,
         ReadStorage<'a, GlobalTransform>,
@@ -50,7 +52,12 @@ impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Clone+gfx::Factory<R>> 
             let m = pos.0;
             let locals = Locals {
                 transform: (vp * m).into(),
-                color: [mat.color.x as f32 / 255.0, mat.color.y as f32 / 255.0, mat.color.z as f32 / 255.0, mat.color.w as f32 / 255.0],
+                color: [
+                    mat.color.x as f32 / 255.0,
+                    mat.color.y as f32 / 255.0,
+                    mat.color.z as f32 / 255.0,
+                    mat.color.w as f32 / 255.0,
+                ],
                 size: tr.size.into(),
             };
             self.encoder
@@ -58,13 +65,19 @@ impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Clone+gfx::Factory<R>> 
             self.encoder.draw(self.slice, self.pso, self.data);
 
             if let Some(text_renderer) = self.text {
-            if let Some(text) = text {
-                text_renderer.add("The quick brown fox jumps over the lazy dog",  // Text to add
-    [10, 10],                                       // Position
-    [0.65, 0.16, 0.16, 1.0],                        // Text color
-                );
-                text_renderer.draw(self.encoder, &self.data.out_color);
-            }
+                if let Some(text) = text {
+                    text_renderer.add(
+                        "The quick brown fox jumps over the lazy dog", // Text to add
+                        [10, 10],                                      // Position
+                        [0.65, 0.16, 0.16, 1.0],                       // Text color
+                    );
+                    if let Err(e) = text_renderer.draw(self.encoder, &self.data.out_color) {
+                        match e {
+                            gfx_text::Error::PipelineError(p) => { println!("{}", p); },
+                            _ => println!("{:?}", e),
+                        }
+                    }
+                }
             }
         }
     }
@@ -103,18 +116,17 @@ impl Vertex {
     }
 }
 
-
-
-pub struct Renderer<R: gfx::Resources, F: Clone+gfx::Factory<R>> {
+pub struct Renderer<R: gfx::Resources, F: Clone + gfx::Factory<R>> {
     factory: F,
     slice: gfx::Slice<R>,
     data: pipe::Data<R>,
     pso: Option<gfx::PipelineState<R, pipe::Meta>>,
     version: u8,
+    text_version: u8,
     text: Option<gfx_text::Renderer<R, F>>,
 }
 
-impl<R: gfx::Resources, F: Clone+gfx::Factory<R>> Renderer<R, F> {
+impl<R: gfx::Resources, F: Clone + gfx::Factory<R>> Renderer<R, F> {
     pub fn new(
         mut factory: F,
         _backend: shade::Backend,
@@ -131,9 +143,7 @@ impl<R: gfx::Resources, F: Clone+gfx::Factory<R>> Renderer<R, F> {
             Vertex::new([0, v, 0], [0, 1]),
         ];
 
-        let index_data: &[u16] = &[
-            0, 1, 2, 2, 3, 0, 
-        ];
+        let index_data: &[u16] = &[0, 1, 2, 2, 3, 0];
 
         let (vbuf, slice) = factory.create_vertex_buffer_with_slice(&vertex_data, index_data);
 
@@ -154,21 +164,12 @@ impl<R: gfx::Resources, F: Clone+gfx::Factory<R>> Renderer<R, F> {
         let data = pipe::Data {
             vbuf: vbuf,
             transform: (proj * default_view()).into(),
-            screen: [
-                window_targets.size.0 as f32,
-                window_targets.size.1 as f32,
-            ],
+            screen: [window_targets.size.0 as f32, window_targets.size.1 as f32],
             locals: factory.create_constant_buffer(1),
             color: (texture_view, factory.create_sampler(sinfo)),
             out_color: window_targets.color,
             out_depth: window_targets.depth,
         };
-
-        let mut text = gfx_text::new(factory.clone()).build();
-        if text.is_err()
-        {
-            println!("{:?}", text.as_ref().err());
-        } 
 
         Renderer {
             factory,
@@ -176,7 +177,8 @@ impl<R: gfx::Resources, F: Clone+gfx::Factory<R>> Renderer<R, F> {
             data,
             pso: None,
             version: 0,
-            text: text.ok(),
+            text_version: 0,
+            text: None,
             // bundle: Bundle::new(slice, pso, data),
         }
     }
@@ -191,7 +193,7 @@ impl<R: gfx::Resources, F: Clone+gfx::Factory<R>> Renderer<R, F> {
         use crate::manager::*;
         use gfx::traits::FactoryExt;
         let mut ctx = Ctx::new();
-        
+
         let dep = SimpleKey::Logical(("shader/cube.hlsl").into());
         match store.get::<ShaderSet>(&dep, &mut ctx) {
             Ok(set) => {
@@ -200,16 +202,35 @@ impl<R: gfx::Resources, F: Clone+gfx::Factory<R>> Renderer<R, F> {
                     self.version = set.version;
                     self.pso = self
                         .factory
-                        .create_pipeline_simple(
-                            &set.vx,
-                            &set.px,
-                            crate::rendering::pipe::new(),
-                        )
+                        .create_pipeline_simple(&set.vx, &set.px, crate::rendering::pipe::new())
                         .ok();
                 }
             }
-            e => { println!("Error {:?}", e); }
+            e => {
+                println!("Error {:?}", e);
+            }
         }
+        
+        let dep = SimpleKey::Logical(("shader/text.hlsl").into());
+
+        match store.get::<ShaderSet>(&dep, &mut ctx) {
+            Ok(set) => {
+                let set = set.borrow_mut();
+                if set.version != self.text_version {
+                    self.text_version = set.version;
+
+                    let text = gfx_text::new(self.factory.clone()).build(&set.vx, &set.px);
+                    if text.is_err() {
+                        println!("{:?}", text.as_ref().err());
+                    }
+                    self.text = text.ok();
+                }
+            }
+            e => {
+                println!("Error {:?}", e);
+            }
+        }
+
         match self.pso.as_ref() {
             Some(pso) => {
                 let mut sys = SysRender {
@@ -243,6 +264,6 @@ pub fn default_view() -> Matrix4<f32> {
     )
 }
 
-pub fn cam((w,h): (u32,u32)) -> Matrix4<f32> {
+pub fn cam((w, h): (u32, u32)) -> Matrix4<f32> {
     cgmath::ortho(0.0f32, w as f32, h as f32, 0.0f32, -1.0f32, 1.0f32)
 }

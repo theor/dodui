@@ -552,7 +552,6 @@ dependencies = [
 [[package]]
 name = "gfx_text"
 version = "0.23.0"
-source = "git+https://github.com/theor/gfx_text.git#ac87b1178ec583df10ae7fdf7f73fdcd0db468f5"
 dependencies = [
  "freetype-rs 0.19.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1221,7 +1220,7 @@ dependencies = [
  "gfx_device_gl 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_gl 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_macros 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "gfx_text 0.23.0 (git+https://github.com/theor/gfx_text.git)",
+ "gfx_text 0.23.0",
  "gfx_window_dxgi 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_window_glfw 0.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_window_glutin 0.29.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2056,7 +2055,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum gfx_device_gl 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2229b46c5630717e9aeb330561374594ffb30749a314c1c2f5a6514eab5ed53f"
 "checksum gfx_gl 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3e8a920f8f6c1025a7ddf9dd25502bf059506fd3cd765dfbe8dba0b56b7eeecb"
 "checksum gfx_macros 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "d38f9e1d3f4705b26e73437e35fd71c955aba5781f6bb5391d37a166204d301f"
-"checksum gfx_text 0.23.0 (git+https://github.com/theor/gfx_text.git)" = "<none>"
 "checksum gfx_window_dxgi 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)" = "956cd5192d020e74f62d62d45d4293187c230623d44c04acbed066384a7b753a"
 "checksum gfx_window_glfw 0.17.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3d747267bea37dd276c1a700713e343facb22a618302081c2cd40642b8e11df7"
 "checksum gfx_window_glutin 0.29.0 (registry+https://github.com/rust-lang/crates.io-index)" = "94d302e0f322d95a1330b2c7f1720534c07ea87ea0fe3b915e8c630f286c09a7"

@@ -24,7 +24,8 @@ Texture2D<float4> t_Color;
 SamplerState t_Color_;
 
 float4 Pixel(VsOutput pin) : SV_Target {
-	float4 tex = u_Color;// float4(1.0,0,0,1);// t_Color.Sample(t_Color_, pin.tc);
+	// float4 tex = u_Color;// float4(1.0,0,0,1);// t_Color.Sample(t_Color_, pin.tc);
+	float4 tex = t_Color.Sample(t_Color_, pin.tc) * u_Color;
     float blend = dot(pin.tc-0.5, pin.tc-0.5);
     return lerp(tex, 0.0, blend*1.0);   
 }

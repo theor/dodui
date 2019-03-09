@@ -190,6 +190,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>+Clone> gfx_app::Application<R
             .with(<Pseudo as Default>::default())
             .with(rendering::Material::default())
             .with(Vel(0.01))
+            .with(rendering::Text {text: "asdf".to_string()})
             .build();
         let e2 = world
             .create_entity()
