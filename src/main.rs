@@ -160,6 +160,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>+Clone> gfx_app::Application<R
         world.register::<Transform>();
         world.register::<Vel>();
         world.register::<rendering::Material>();
+        world.register::<rendering::Text>();
         world.add_resource::<MouseEvent>(MouseEvent { position:(-1,-1) });
         world.add_resource::<rendering::Screen>(rendering::Screen {
             size: window_targets.size,

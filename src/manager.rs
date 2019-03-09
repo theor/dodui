@@ -193,6 +193,51 @@ impl Load<Ctx, SimpleKey, AlwaysFail> for ShaderSet {
   }
 }
 
+#[derive(Debug)]
+enum ShaderType { Vertex, Pixel }
+
+fn get_output_path(shader_type: &ShaderType, path: &Path) -> PathBuf {
+  let mut p: PathBuf = PathBuf::new();
+  p.push("data");
+  // if let Some(parent) = path.parent() {
+  //   p.push(parent);
+  // }
+  let mut file = path.file_stem().unwrap().to_owned();
+  file.push(format!("_{:?}", shader_type));
+  let file_path: PathBuf = file.into();
+  p.push(file_path.with_extension("fx"));
+
+  p
+}
+
+fn compile(shader_type:ShaderType, path: &Path) -> Result<Vec<u8>, Error> {
+  use std::process::Command;
+  use std::io::Write;
+
+  let fxc = "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.17763.0\\x64\\fxc.exe";
+  let output_path = get_output_path(&shader_type, path);
+  println!("  output path for {:?} {}: {}", shader_type, path.display(), output_path.display());
+  let args = match shader_type {
+    ShaderType::Vertex => ["-nologo", "/T","vs_4_0","/E","Vertex","/Fo",output_path.to_str().unwrap(),"shader/cube.hlsl"],
+    ShaderType::Pixel => ["-nologo", "/T","ps_4_0","/E","Pixel","/Fo",output_path.to_str().unwrap(),"shader/cube.hlsl"],
+  };
+
+  let output = Command::new(fxc)
+    .args(&args)
+    .output()
+    .map_err(Error::IOError)?;
+
+  println!("Shader compilation status: {}", output.status);
+  io::stdout().write_all(&output.stdout).map_err(Error::IOError)?;
+  io::stderr().write_all(&output.stderr).map_err(Error::IOError)?;
+
+
+  let mut fh = File::open(output_path).map_err(Error::IOError)?;
+  let mut vx = Vec::default();
+  fh.read_to_end(&mut vx).map_err(Error::IOError)?;
+  Ok(vx)
+}
+
 impl Load<Ctx, SimpleKey> for ShaderSet {
   type Error = Error;
 
@@ -205,27 +250,9 @@ impl Load<Ctx, SimpleKey> for ShaderSet {
       SimpleKey::Logical(key) => {
         println!("Load logical {}", key.display());
         
-        use std::process::Command;
-        use std::io::Write;
+        let vx = compile(ShaderType::Vertex, &key)?;
+        let px = compile(ShaderType::Pixel, &key)?;
 
-        let output = Command::new("cmd")
-          .args(&["/C", "compile.cmd"])
-          .output()
-          .expect("failed to execute process");
-
-        println!("Shader compilation status: {}", output.status);
-        io::stdout().write_all(&output.stdout).unwrap();
-        io::stderr().write_all(&output.stderr).unwrap();
-
-
-        let mut fh = File::open("data/vertex.fx").map_err(Error::IOError)?;
-        let mut vx = Vec::default();
-        fh.read_to_end(&mut vx).expect("Load failed");
-
-        let mut fh = File::open("data/pixel.fx").map_err(Error::IOError)?;
-        let mut px = Vec::default();
-        fh.read_to_end(&mut px).expect("Load failed");
-          
         Ok(Loaded::without_dep(ShaderSet {
           version: 1,
           vx: vx,

@@ -16,27 +16,37 @@ pub struct Screen {
     pub size: (u32, u32),
 }
 
-pub struct SysRender<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> {
+pub struct Text {
+    pub text: String,
+}
+
+impl Component for Text {
+    type Storage = DenseVecStorage<Self>;
+}
+
+pub struct SysRender<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Clone+gfx::Factory<R>> {
     slice: &'a gfx::Slice<R>,
     data: &'a pipe::Data<R>,
     pso: &'a gfx::PipelineState<R, pipe::Meta>,
     encoder: &'a mut gfx::Encoder<R, C>,
+    text: &'a mut Option<gfx_text::Renderer<R, F>>,
 }
 
-impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'a, R, C> {
+impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Clone+gfx::Factory<R>> System<'a> for SysRender<'a, R, C, F> {
     type SystemData = (
         ReadStorage<'a, Transform>,
         ReadStorage<'a, GlobalTransform>,
         ReadStorage<'a, Material>,
+        ReadStorage<'a, Text>,
         // Read<'a, Screen>,
     );
-    fn run(&mut self, (tr, pos, mat): Self::SystemData) {
+    fn run(&mut self, (tr, pos, mat, text): Self::SystemData) {
         self.encoder
             .clear(&self.data.out_color, [0.1, 0.2, 0.3, 1.0]);
         self.encoder.clear_depth(&self.data.out_depth, 1.0);
         let vp: cgmath::Matrix4<f32> = self.data.transform.into();
 
-        for (tr, pos, mat) in (&tr, &pos, &mat).join() {
+        for (tr, pos, mat, text) in (&tr, &pos, &mat, text.maybe()).join() {
             let m = pos.0;
             let locals = Locals {
                 transform: (vp * m).into(),
@@ -45,7 +55,17 @@ impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>> System<'a> for SysRender<'
             };
             self.encoder
                 .update_constant_buffer(&self.data.locals, &locals);
-            self.encoder.draw(self.slice, self.pso, self.data);;
+            self.encoder.draw(self.slice, self.pso, self.data);
+
+            if let Some(text_renderer) = self.text {
+            if let Some(text) = text {
+                text_renderer.add("The quick brown fox jumps over the lazy dog",  // Text to add
+    [10, 10],                                       // Position
+    [0.65, 0.16, 0.16, 1.0],                        // Text color
+                );
+                text_renderer.draw(self.encoder, &self.data.out_color);
+            }
+            }
         }
     }
 }
@@ -91,6 +111,7 @@ pub struct Renderer<R: gfx::Resources, F: Clone+gfx::Factory<R>> {
     data: pipe::Data<R>,
     pso: Option<gfx::PipelineState<R, pipe::Meta>>,
     version: u8,
+    text: Option<gfx_text::Renderer<R, F>>,
 }
 
 impl<R: gfx::Resources, F: Clone+gfx::Factory<R>> Renderer<R, F> {
@@ -143,9 +164,11 @@ impl<R: gfx::Resources, F: Clone+gfx::Factory<R>> Renderer<R, F> {
             out_depth: window_targets.depth,
         };
 
-        // text
-        use std::clone::Clone;
-        let mut normal_text = gfx_text::new(factory.clone()).unwrap();
+        let mut text = gfx_text::new(factory.clone()).build();
+        if text.is_err()
+        {
+            println!("{:?}", text.as_ref().err());
+        } 
 
         Renderer {
             factory,
@@ -153,6 +176,7 @@ impl<R: gfx::Resources, F: Clone+gfx::Factory<R>> Renderer<R, F> {
             data,
             pso: None,
             version: 0,
+            text: text.ok(),
             // bundle: Bundle::new(slice, pso, data),
         }
     }
@@ -193,6 +217,7 @@ impl<R: gfx::Resources, F: Clone+gfx::Factory<R>> Renderer<R, F> {
                     pso: pso,
                     data: &self.data,
                     encoder: encoder,
+                    text: &mut self.text,
                 };
                 sys.run_now(res);
             }
