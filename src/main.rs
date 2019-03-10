@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#![feature(fnbox)]
 
 extern crate cgmath;
 #[macro_use]
@@ -86,27 +87,57 @@ impl Component for Pseudo  {
     type Storage = DenseVecStorage<Self>;
 }
 
+use std::boxed::FnBox;
+type Callback = Box<dyn Fn(Entity)+Send>;
+pub struct Events {
+    pub map : std::sync::Mutex<std::collections::HashMap<Entity, Callback>>,
+}
+
+impl Default for Events {
+    fn default() -> Self {
+        Events {
+            map: std::sync::Mutex::new(std::collections::HashMap::new()),
+        }
+    }
+}
+
+impl Events {
+    pub fn register(&mut self, e: Entity, c: Callback){
+        self.map.lock().unwrap().insert(e, c);
+    }
+    pub fn invoke(&self, e: Entity){
+        if let Some(cb) = self.map.lock().unwrap().get(&e) {
+            let cb2 = cb.clone();
+            cb2(e.clone());
+        }
+    }
+}
 
 struct PickSystem;
 impl<'a> System<'a> for PickSystem {
     type SystemData = (
+        Entities<'a>,
         ReadStorage<'a, GlobalTransform>,
         ReadStorage<'a, Transform>,
         WriteStorage<'a, Pseudo>,
         Read<'a, MouseEvent>,
+        Read<'a, Events>,
         Read<'a, rendering::Screen>);
 
     #[allow(dead_code)]
-    fn run(&mut self, (pos, tr, mut pseudo, mouse, _screen): Self::SystemData) {
+    fn run(&mut self, (entities, pos, tr, mut pseudo, mouse, events, _screen): Self::SystemData) {
         use cgmath::Transform;
         let p: cgmath::Point3<f32> =
             cgmath::Point3::new(mouse.position.0 as f32, mouse.position.1 as f32, 0.0);
 
-        for (pos,tr, mut pseudo) in (&pos, &tr, &mut pseudo).join() {
+        for (e, pos,tr, mut pseudo) in (&entities, &pos, &tr, &mut pseudo).join() {
             let p2 = pos.0.transform_point(cgmath::Point3::new(0.0, 0.0, 0.0));
             if p.x as f32 >= p2.x && p.x as f32 <= p2.x + tr.size.x &&
                p.y as f32 >= p2.y && p.y as f32 <= p2.y + tr.size.y {
                 pseudo.hover = true;
+                if mouse.left_click == winit::ElementState::Pressed { // ButtonState::Down {
+                    events.invoke(e.clone());
+                }
                 // println!("  {:?} {:?}", pos.0, p2);
             } else {
                 pseudo.hover = false;
@@ -141,9 +172,22 @@ struct App<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>+Clone> {
     store: manager::ResourceManager,
 }
 
-#[derive(Debug, Default)]
+// #[derive(Debug, PartialEq, Clone)]
+// pub enum ButtonState { Up, Pressed, Down, Released }
+
+#[derive(Debug)]
 struct MouseEvent {
     position: (i32, i32),
+    left_click: winit::ElementState,// ButtonState,
+}
+
+impl Default for MouseEvent {
+    fn default() -> Self {
+        MouseEvent {
+            position: (-1, -1),
+            left_click: winit::ElementState::Released,
+        }
+    }
 }
 
 impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>+Clone> gfx_app::Application<R, F>
@@ -161,7 +205,8 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>+Clone> gfx_app::Application<R
         world.register::<Vel>();
         world.register::<rendering::Material>();
         world.register::<rendering::Text>();
-        world.add_resource::<MouseEvent>(MouseEvent { position:(-1,-1) });
+        world.add_resource::<MouseEvent>(Default::default());
+        world.add_resource::<Events>(Default::default());
         world.add_resource::<rendering::Screen>(rendering::Screen {
             size: window_targets.size,
         });
@@ -185,31 +230,35 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>+Clone> gfx_app::Application<R
 
         let e1 = world
             .create_entity()
-            .with(Transform::new(0.0, 0.0))
+            .with(Transform::new(50.0, 50.0).with_size(200.0, 50.0))
             .with(StyleBackground::from_color(255, 0, 0, 255))
             .with(<Pseudo as Default>::default())
             .with(rendering::Material::default())
             .with(Vel(0.01))
-            .with(rendering::Text {text: "asdf".to_string()})
             .build();
+
+        {
+            let mut events = world.write_resource::<Events>();
+            events.register(e1, Box::new(move|e| { println!("clicked {:?}", e)}));
+        }
+
         let e2 = world
             .create_entity()
-            .with(Transform::new(200.0, 200.0))
+            .with(Transform::new(5.0, 5.0).with_size(190.0, 40.0))
             .with(StyleBackground::from_color(0, 255, 0, 255))
             .with(<Pseudo as Default>::default())
             .with(rendering::Material::default())
             .with(Vel(0.005))
             .with(Parent { entity: e1 })
-            .with(rendering::Text {text: "ent 2 child of 1".to_string()})
             .build();
         let _e3 = world
             .create_entity()
-            .with(Transform::new(200.0, 400.0))
+            .with(Transform::new(5.0, 5.0).with_size(180.0, 30.0))
             .with(StyleBackground::from_color(0, 0, 255, 255))
             .with(<Pseudo as Default>::default())
             .with(rendering::Material::default())
-            .with(Parent { entity: e1 })
-            .with(rendering::Text {text: "ent 3 child of 1".to_string()})
+            .with(Parent { entity: e2 })
+            .with(rendering::Text {text: "button".to_string()})
             .build();
 
         let _e4 = world
@@ -250,6 +299,17 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>+Clone> gfx_app::Application<R
 
     fn on(&mut self, event: winit::WindowEvent) {
         match event {
+            winit::WindowEvent::MouseInput { button, state, .. } => {
+                  let mut m = self.world.write_resource::<MouseEvent>();
+                  let prev = m.left_click.clone();
+                    m.left_click = state;
+                    // use winit::ElementState;
+                    // match (prev, state) {
+                    //     (ButtonState::Up, ElementState::Pressed) | (ButtonState::Released, ElementState::Pressed) => ButtonState::Pressed,
+                    //     (ButtonState::Up, ElementState::Released) | (ButtonState::Released, ElementState::Pressed) => ButtonState::Pressed,
+                    //     _ => ButtonState::Up,
+                    // };
+            },
             winit::WindowEvent::CursorMoved { position: p, .. } => {
                 let p: (i32, i32) = p.into();
                 let mut m = self.world.write_resource::<MouseEvent>();
