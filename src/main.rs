@@ -11,8 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#![feature(fnbox)]
-
 extern crate cgmath;
 #[macro_use]
 extern crate gfx;
@@ -66,31 +64,34 @@ impl<'a> System<'a> for SysA {
 }
 
 #[derive(Debug)]
-pub struct StyleBackground { color: cgmath::Vector4<u8> }
+pub struct StyleBackground {
+    color: cgmath::Vector4<u8>,
+}
 
-impl Component for StyleBackground  {
+impl Component for StyleBackground {
     type Storage = DenseVecStorage<Self>;
 }
 
 impl StyleBackground {
-    pub fn from_color(r:u8, g:u8, b:u8, a:u8) -> Self {        
+    pub fn from_color(r: u8, g: u8, b: u8, a: u8) -> Self {
         Self {
-            color: cgmath::Vector4::new(r,g,b,a)
+            color: cgmath::Vector4::new(r, g, b, a),
         }
     }
 }
 
 #[derive(Debug, Default)]
-pub struct Pseudo { hover: bool }
+pub struct Pseudo {
+    hover: bool,
+}
 
-impl Component for Pseudo  {
+impl Component for Pseudo {
     type Storage = DenseVecStorage<Self>;
 }
 
-use std::boxed::FnBox;
-type Callback = Box<dyn Fn(Entity)+Send>;
+type Callback = Box<dyn Fn(Entity) + Send>;
 pub struct Events {
-    pub map : std::sync::Mutex<std::collections::HashMap<Entity, Callback>>,
+    pub map: std::sync::Mutex<std::collections::HashMap<Entity, Callback>>,
 }
 
 impl Default for Events {
@@ -102,10 +103,10 @@ impl Default for Events {
 }
 
 impl Events {
-    pub fn register(&mut self, e: Entity, c: Callback){
+    pub fn register(&mut self, e: Entity, c: Callback) {
         self.map.lock().unwrap().insert(e, c);
     }
-    pub fn invoke(&self, e: Entity){
+    pub fn invoke(&self, e: Entity) {
         if let Some(cb) = self.map.lock().unwrap().get(&e) {
             let cb2 = cb.clone();
             cb2(e.clone());
@@ -122,7 +123,8 @@ impl<'a> System<'a> for PickSystem {
         WriteStorage<'a, Pseudo>,
         Read<'a, MouseEvent>,
         Read<'a, Events>,
-        Read<'a, rendering::Screen>);
+        Read<'a, rendering::Screen>,
+    );
 
     #[allow(dead_code)]
     fn run(&mut self, (entities, pos, tr, mut pseudo, mouse, events, _screen): Self::SystemData) {
@@ -130,15 +132,18 @@ impl<'a> System<'a> for PickSystem {
         let p: cgmath::Point3<f32> =
             cgmath::Point3::new(mouse.position.0 as f32, mouse.position.1 as f32, 0.0);
 
-        for (e, pos,tr, mut pseudo) in (&entities, &pos, &tr, &mut pseudo).join() {
+        for (e, pos, tr, mut pseudo) in (&entities, &pos, &tr, &mut pseudo).join() {
             let p2 = pos.0.transform_point(cgmath::Point3::new(0.0, 0.0, 0.0));
-            if p.x as f32 >= p2.x && p.x as f32 <= p2.x + tr.size.x &&
-               p.y as f32 >= p2.y && p.y as f32 <= p2.y + tr.size.y {
+            if p.x as f32 >= p2.x
+                && p.x as f32 <= p2.x + tr.size.x
+                && p.y as f32 >= p2.y
+                && p.y as f32 <= p2.y + tr.size.y
+            {
                 pseudo.hover = true;
-                if mouse.left_click == winit::ElementState::Pressed { // ButtonState::Down {
+                if mouse.left_click == ButtonState::Pressed {
                     events.invoke(e.clone());
                 }
-                // println!("  {:?} {:?}", pos.0, p2);
+            // println!("  {:?} {:?}", pos.0, p2);
             } else {
                 pseudo.hover = false;
             }
@@ -151,53 +156,56 @@ impl<'a> System<'a> for StyleSystem {
     type SystemData = (
         ReadStorage<'a, Pseudo>,
         ReadStorage<'a, StyleBackground>,
-        WriteStorage<'a, rendering::Material>
+        WriteStorage<'a, rendering::Material>,
     );
 
     #[allow(dead_code)]
     fn run(&mut self, (pseudo, bg, mut mat): Self::SystemData) {
         for (pseudo, bg, mut mat) in (pseudo.maybe(), &bg, &mut mat).join() {
-            mat.color = if pseudo.map_or(false, |v| v.hover) { bg.color } else { bg.color / 2 };
+            mat.color = if pseudo.map_or(false, |v| v.hover) {
+                bg.color
+            } else {
+                bg.color / 2
+            };
         }
     }
 }
 
-
-
 //----------------------------------------
-struct App<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>+Clone> {
+struct App<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> {
     renderer: rendering::Renderer<R, F>,
     world: World,
     dispatcher: Dispatcher<'a, 'b>,
     store: manager::ResourceManager,
 }
 
-// #[derive(Debug, PartialEq, Clone)]
-// pub enum ButtonState { Up, Pressed, Down, Released }
+#[derive(Debug, PartialEq, Clone)]
+pub enum ButtonState {
+    Up,
+    Pressed,
+    Down,
+    Released,
+}
 
 #[derive(Debug)]
 struct MouseEvent {
     position: (i32, i32),
-    left_click: winit::ElementState,// ButtonState,
+    left_click: ButtonState,
 }
 
 impl Default for MouseEvent {
     fn default() -> Self {
         MouseEvent {
             position: (-1, -1),
-            left_click: winit::ElementState::Released,
+            left_click: ButtonState::Up,
         }
     }
 }
 
-impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>+Clone> gfx_app::Application<R, F>
+impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application<R, F>
     for App<'a, 'b, R, F>
 {
-    fn new(
-        factory: F,
-        backend: shade::Backend,
-        window_targets: gfx_app::WindowTargets<R>,
-    ) -> Self {
+    fn new(factory: F, backend: shade::Backend, window_targets: gfx_app::WindowTargets<R>) -> Self {
         println!("Backend: {:?}", backend);
 
         let mut world = World::new();
@@ -239,7 +247,8 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>+Clone> gfx_app::Application<R
 
         {
             let mut events = world.write_resource::<Events>();
-            events.register(e1, Box::new(move|e| { println!("clicked {:?}", e)}));
+            events.register(e1, Box::new(move |e| println!("clicked {:?}", e)));
+            
         }
 
         let e2 = world
@@ -258,7 +267,9 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>+Clone> gfx_app::Application<R
             .with(<Pseudo as Default>::default())
             .with(rendering::Material::default())
             .with(Parent { entity: e2 })
-            .with(rendering::Text {text: "button".to_string()})
+            .with(rendering::Text {
+                text: "button".to_string(),
+            })
             .build();
 
         let _e4 = world
@@ -268,7 +279,9 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>+Clone> gfx_app::Application<R
             // .with(<Pseudo as Default>::default())
             .with(rendering::Material::default())
             .with(Parent { entity: e2 })
-            .with(rendering::Text {text: "ent 4 child of 2".to_string()})
+            .with(rendering::Text {
+                text: "ent 4 child of 2".to_string(),
+            })
             .build();
 
         let renderer = rendering::Renderer::new(factory, backend, window_targets);
@@ -287,36 +300,55 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R>+Clone> gfx_app::Application<R
     }
 
     fn render<C2: gfx::CommandBuffer<R>>(&mut self, encoder: &mut gfx::Encoder<R, C2>) {
-        self.renderer.render(&self.world.res, encoder, &mut self.store);
+        self.renderer
+            .render(&self.world.res, encoder, &mut self.store);
         self.dispatcher.dispatch(&mut self.world.res);
         self.store.sync(&mut manager::Ctx::new());
+        
+        let mut m = self.world.write_resource::<MouseEvent>();
+        match m.left_click {
+            ButtonState::Released => m.left_click = ButtonState::Up,
+            ButtonState::Pressed => m.left_click = ButtonState::Down,
+            _ => {}
+        }
     }
 
     fn on_resize(&mut self, window_targets: gfx_app::WindowTargets<R>) {
+
         self.world.write_resource::<rendering::Screen>().size = window_targets.size;
         self.renderer.on_resize(window_targets);
     }
 
     fn on(&mut self, event: winit::WindowEvent) {
         match event {
-            winit::WindowEvent::MouseInput { button, state, .. } => {
-                  let mut m = self.world.write_resource::<MouseEvent>();
-                  let prev = m.left_click.clone();
-                    m.left_click = state;
-                    // use winit::ElementState;
-                    // match (prev, state) {
-                    //     (ButtonState::Up, ElementState::Pressed) | (ButtonState::Released, ElementState::Pressed) => ButtonState::Pressed,
-                    //     (ButtonState::Up, ElementState::Released) | (ButtonState::Released, ElementState::Pressed) => ButtonState::Pressed,
-                    //     _ => ButtonState::Up,
-                    // };
-            },
+            winit::WindowEvent::MouseInput {
+                button: _button,
+                state,
+                ..
+            } => {
+                let mut m = self.world.write_resource::<MouseEvent>();
+                let prev = m.left_click.clone();
+                //state;
+                use winit::ElementState;
+                match (prev, state) {
+                    (ButtonState::Up, ElementState::Pressed)
+                    | (ButtonState::Released, ElementState::Pressed) => {
+                        m.left_click = ButtonState::Pressed
+                    }
+                    (ButtonState::Down, ElementState::Released)
+                    | (ButtonState::Pressed, ElementState::Released) => {
+                        m.left_click = ButtonState::Released
+                    }
+                    _ => {}
+                };
+            }
             winit::WindowEvent::CursorMoved { position: p, .. } => {
                 let p: (i32, i32) = p.into();
                 let mut m = self.world.write_resource::<MouseEvent>();
 
                 // hack: a first CursorMoved 0,0 event is sent on start even if the mouse is not in the window
                 if m.position.0 == -1 && m.position.1 == -1 && p.0 == 0 && p.1 == 0 {
-                    m.position = (-2,-2);
+                    m.position = (-2, -2);
                 } else {
                     m.position = p;
                 }
