@@ -62,6 +62,20 @@ impl<'a> System<'a> for SysA {
         }
     }
 }
+#[derive(Debug, PartialEq)]
+pub enum EventType {
+    Pressed,
+    Released,
+}
+#[derive(Debug)]
+pub struct Event {
+    pub target: Entity,
+    pub event_type: EventType,
+}
+
+impl Component for Event {
+    type Storage = HashMapStorage<Self>;
+}
 
 #[derive(Debug)]
 pub struct StyleBackground {
@@ -114,6 +128,28 @@ impl Events {
     }
 }
 
+struct ConsumeEventsSystem;
+impl<'a> System<'a> for ConsumeEventsSystem {
+    type SystemData = (Entities<'a>, ReadStorage<'a, Event>);
+
+    fn run(&mut self, (entities, event): Self::SystemData) {
+        for (e, event) in (&entities, &event).join() {
+            println!("Event {:?}", event);
+        }
+    }
+}
+
+struct CleanEventsSystem;
+impl<'a> System<'a> for CleanEventsSystem {
+    type SystemData = (Entities<'a>, ReadStorage<'a, Event>);
+
+    fn run(&mut self, (entities, event): Self::SystemData) {
+        for (e, _event) in (&entities, &event).join() {
+            entities.delete(e).unwrap();
+        }
+    }
+}
+
 struct PickSystem;
 impl<'a> System<'a> for PickSystem {
     type SystemData = (
@@ -121,13 +157,17 @@ impl<'a> System<'a> for PickSystem {
         ReadStorage<'a, GlobalTransform>,
         ReadStorage<'a, Transform>,
         WriteStorage<'a, Pseudo>,
+        WriteStorage<'a, Event>,
         Read<'a, MouseEvent>,
         Read<'a, Events>,
         Read<'a, rendering::Screen>,
     );
 
     #[allow(dead_code)]
-    fn run(&mut self, (entities, pos, tr, mut pseudo, mouse, events, _screen): Self::SystemData) {
+    fn run(
+        &mut self,
+        (entities, pos, tr, mut pseudo, mut event, mouse, events, _screen): Self::SystemData,
+    ) {
         use cgmath::Transform;
         let p: cgmath::Point3<f32> =
             cgmath::Point3::new(mouse.position.0 as f32, mouse.position.1 as f32, 0.0);
@@ -142,6 +182,27 @@ impl<'a> System<'a> for PickSystem {
                 pseudo.hover = true;
                 if mouse.left_click == ButtonState::Pressed {
                     events.invoke(e.clone());
+                    entities
+                        .build_entity()
+                        .with(
+                            Event {
+                                target: e,
+                                event_type: EventType::Pressed,
+                            },
+                            &mut event,
+                        )
+                        .build();
+                } else if mouse.left_click == ButtonState::Released {
+                    entities
+                        .build_entity()
+                        .with(
+                            Event {
+                                target: e,
+                                event_type: EventType::Released,
+                            },
+                            &mut event,
+                        )
+                        .build();
                 }
             // println!("  {:?} {:?}", pos.0, p2);
             } else {
@@ -213,6 +274,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
         world.register::<Vel>();
         world.register::<rendering::Material>();
         world.register::<rendering::Text>();
+        world.register::<Event>();
         world.add_resource::<MouseEvent>(Default::default());
         world.add_resource::<Events>(Default::default());
         world.add_resource::<rendering::Screen>(rendering::Screen {
@@ -232,7 +294,9 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
                 &["parent_hierarchy_system"],
             )
             .with(PickSystem, "sys_pick", &["transform_system"])
-            .with(StyleSystem, "sys_style", &["sys_pick"])
+            .with(ConsumeEventsSystem, "sys_consume", &["sys_pick"])
+            .with(StyleSystem, "sys_style", &["sys_consume"])
+            .with(CleanEventsSystem, "sys_clean_events", &["sys_style"])
             .build();
         dispatcher.setup(&mut world.res);
 
@@ -248,7 +312,6 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
         {
             let mut events = world.write_resource::<Events>();
             events.register(e1, Box::new(move |e| println!("clicked {:?}", e)));
-            
         }
 
         let e2 = world
@@ -304,17 +367,20 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
             .render(&self.world.res, encoder, &mut self.store);
         self.dispatcher.dispatch(&mut self.world.res);
         self.store.sync(&mut manager::Ctx::new());
-        
-        let mut m = self.world.write_resource::<MouseEvent>();
-        match m.left_click {
-            ButtonState::Released => m.left_click = ButtonState::Up,
-            ButtonState::Pressed => m.left_click = ButtonState::Down,
-            _ => {}
+
+        {
+            let mut m = self.world.write_resource::<MouseEvent>();
+            // println!("  left click {:?}", m.left_click);
+            match m.left_click {
+                ButtonState::Released => m.left_click = ButtonState::Up,
+                ButtonState::Pressed => m.left_click = ButtonState::Down,
+                _ => {}
+            }
         }
+        self.world.maintain();
     }
 
     fn on_resize(&mut self, window_targets: gfx_app::WindowTargets<R>) {
-
         self.world.write_resource::<rendering::Screen>().size = window_targets.size;
         self.renderer.on_resize(window_targets);
     }
