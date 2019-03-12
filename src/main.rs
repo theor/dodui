@@ -52,6 +52,8 @@ mod transform;
 use transform::*;
 
 mod layout_system;
+mod style_system;
+use style_system::*;
 
 #[allow(dead_code)]
 struct SysA;
@@ -77,32 +79,6 @@ pub struct Event {
 
 impl Component for Event {
     type Storage = HashMapStorage<Self>;
-}
-
-#[derive(Debug)]
-pub struct StyleBackground {
-    color: cgmath::Vector4<u8>,
-}
-
-impl Component for StyleBackground {
-    type Storage = DenseVecStorage<Self>;
-}
-
-impl StyleBackground {
-    pub fn from_color(r: u8, g: u8, b: u8, a: u8) -> Self {
-        Self {
-            color: cgmath::Vector4::new(r, g, b, a),
-        }
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct Pseudo {
-    hover: bool,
-}
-
-impl Component for Pseudo {
-    type Storage = DenseVecStorage<Self>;
 }
 
 type Callback = Box<dyn Fn(Entity) + Send>;
@@ -215,26 +191,6 @@ impl<'a> System<'a> for PickSystem {
     }
 }
 
-struct StyleSystem;
-impl<'a> System<'a> for StyleSystem {
-    type SystemData = (
-        ReadStorage<'a, Pseudo>,
-        ReadStorage<'a, StyleBackground>,
-        WriteStorage<'a, rendering::Material>,
-    );
-
-    #[allow(dead_code)]
-    fn run(&mut self, (pseudo, bg, mut mat): Self::SystemData) {
-        for (pseudo, bg, mut mat) in (pseudo.maybe(), &bg, &mut mat).join() {
-            mat.color = if pseudo.map_or(false, |v| v.hover) {
-                bg.color
-            } else {
-                bg.color / 2
-            };
-        }
-    }
-}
-
 //----------------------------------------
 struct App<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> {
     renderer: rendering::Renderer<R, F>,
@@ -298,7 +254,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
             )
             .with(PickSystem, "sys_pick", &["transform_system"])
             .with(ConsumeEventsSystem, "sys_consume", &["sys_pick"])
-            .with(StyleSystem, "sys_style", &["sys_consume"])
+            .with(StyleSystem::new(), "sys_style", &["sys_consume"])
             .with(layout_system::LayoutSystem, "sys_layout", &["sys_style"])
             .with(CleanEventsSystem, "sys_clean_events", &["sys_layout"])
             .build();
