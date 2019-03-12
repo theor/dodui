@@ -51,6 +51,8 @@ mod rendering;
 mod transform;
 use transform::*;
 
+mod layout_system;
+
 #[allow(dead_code)]
 struct SysA;
 impl<'a> System<'a> for SysA {
@@ -174,10 +176,11 @@ impl<'a> System<'a> for PickSystem {
 
         for (e, pos, tr, mut pseudo) in (&entities, &pos, &tr, &mut pseudo).join() {
             let p2 = pos.0.transform_point(cgmath::Point3::new(0.0, 0.0, 0.0));
+            let size = pos.1;
             if p.x as f32 >= p2.x
-                && p.x as f32 <= p2.x + tr.size.x
+                && p.x as f32 <= p2.x + size.0
                 && p.y as f32 >= p2.y
-                && p.y as f32 <= p2.y + tr.size.y
+                && p.y as f32 <= p2.y + size.1
             {
                 pseudo.hover = true;
                 if mouse.left_click == ButtonState::Pressed {
@@ -296,7 +299,8 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
             .with(PickSystem, "sys_pick", &["transform_system"])
             .with(ConsumeEventsSystem, "sys_consume", &["sys_pick"])
             .with(StyleSystem, "sys_style", &["sys_consume"])
-            .with(CleanEventsSystem, "sys_clean_events", &["sys_style"])
+            .with(layout_system::LayoutSystem, "sys_layout", &["sys_style"])
+            .with(CleanEventsSystem, "sys_clean_events", &["sys_layout"])
             .build();
         dispatcher.setup(&mut world.res);
 
@@ -341,7 +345,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
             .with(StyleBackground::from_color(255, 255, 0, 255))
             // .with(<Pseudo as Default>::default())
             .with(rendering::Material::default())
-            .with(Parent { entity: e2 })
+            // .with(Parent { entity: e2 })
             .with(rendering::Text {
                 text: "ent 4 child of 2".to_string(),
             })
