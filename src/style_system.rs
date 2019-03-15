@@ -84,7 +84,7 @@ impl selectors::parser::PseudoElement for PseudoElement {
     type Impl = KuchikiSelectors;
 }
 
-struct KuchikiParser;
+pub struct KuchikiParser;
 
 impl<'i> Parser<'i> for KuchikiParser {
     type Impl = KuchikiSelectors;
@@ -112,11 +112,12 @@ impl<'i> Parser<'i> for KuchikiParser {
 }
 
 /// A pre-compiled list of CSS Selectors.
+#[derive(Clone)]
 pub struct Selectors(pub Vec<Selector>);
 
 /// A pre-compiled CSS Selector.
 #[derive(Clone)]
-pub struct Selector(GenericSelector<KuchikiSelectors>);
+pub struct Selector(pub GenericSelector<KuchikiSelectors>);
 
 #[derive(Copy, Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Specificity(u32);
@@ -314,20 +315,6 @@ impl std::fmt::Debug for Selectors {
         std::fmt::Display::fmt(self, f)
     }
 }
-
-#[derive(Clone, Debug)]
-pub struct Rule {
-    pub selectors: Vec<Selector>,
-    // pub declarations: Vec<Declaration>,
-}
-
-struct TopLevelRuleParser {
-
-}
-
-// impl<'a> cssparser::QualifiedRuleParser<'a> for TopLevelRuleParser {
-
-// }
 
 pub struct StyleSystem;
 impl<'a> System<'a> for StyleSystem {

@@ -56,8 +56,8 @@ use transform::*;
 
 mod layout_system;
 mod color;
-mod styling;
 mod style_system;
+mod styling;
 use style_system::*;
 
 #[allow(dead_code)]

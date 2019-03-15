@@ -18,31 +18,7 @@ use std::sync::Arc;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Read;
-
-// pub use self::cell::CloneCell;
-// pub use self::style::Style;
-
-// mod cell;
-// pub mod material_font_icons;
-// mod style;
-
-// pub static DEFAULT_THEME_CSS: &'static str = include_str!("dark.css");
-// pub static LIGHT_THEME_EXTENSION_CSS: &'static str = include_str!("light.css");
-// pub static ROBOTO_REGULAR_FONT: &'static [u8; 145348] = include_bytes!("Roboto-Regular.ttf");
-
-// lazy_static! {
-//     static ref DEFAULT_THEME: Arc<Theme> = {
-//         Arc::new(Theme {
-//             parent: None,
-//             rules: parse(DEFAULT_THEME_CSS),
-//         })
-//     };
-// }
-
-// lazy_static! {
-//     pub static ref LIGHT_THEME_CSS: String =
-//         format!("{}{}", LIGHT_THEME_EXTENSION_CSS, DEFAULT_THEME_CSS);
-// }
+use crate::style_system::{Selector, Selectors, KuchikiSelectors, KuchikiParser};
 
 #[derive(Debug, Default, Clone)]
 pub struct Theme {
@@ -87,65 +63,65 @@ impl Theme {
         }
     }
 
-    pub fn get(&self, property: &str, query: &Selector) -> Option<Value> {
-        let mut matches: Vec<(bool, Specificity, Value)> = Vec::new();
+    // pub fn get(&self, property: &str, query: &Selector) -> Option<Value> {
+    //     let mut matches: Vec<(bool, Specificity, Value)> = Vec::new();
 
-        for rule in self.all_rules().iter().rev() {
-            let matching_selectors = rule
-                .selectors
-                .iter()
-                .filter(|x| x.matches(query))
-                .collect::<Vec<_>>();
+    //     for rule in self.all_rules().iter().rev() {
+    //         let matching_selectors = rule
+    //             .selectors
+    //             .iter()
+    //             .filter(|x| x.matches(query))
+    //             .collect::<Vec<_>>();
 
-            if !matching_selectors.is_empty() {
-                if let Some(decl) = rule
-                    .declarations
-                    .iter()
-                    .find(|decl| decl.property == property)
-                {
-                    let highest_specifity = matching_selectors
-                        .iter()
-                        .map(|sel| sel.specificity())
-                        .max()
-                        .unwrap();
-                    matches.push((decl.important, highest_specifity, decl.value.clone()));
-                }
-            }
-        }
+    //         if !matching_selectors.is_empty() {
+    //             if let Some(decl) = rule
+    //                 .declarations
+    //                 .iter()
+    //                 .find(|decl| decl.property == property)
+    //             {
+    //                 let highest_specifity = matching_selectors
+    //                     .iter()
+    //                     .map(|sel| sel.specificity())
+    //                     .max()
+    //                     .unwrap();
+    //                 matches.push((decl.important, highest_specifity, decl.value.clone()));
+    //             }
+    //         }
+    //     }
 
-        matches.sort_by_key(|x| (x.0, x.1));
-        matches.last().map(|x| x.2.clone())
-    }
+    //     matches.sort_by_key(|x| (x.0, x.1));
+    //     matches.last().map(|x| x.2.clone())
+    // }
 
-    pub fn color(&self, property: &str, query: &Selector) -> Color {
-        let default = Color { data: 0 };
-        self.get(property, query)
-            .map(|v| v.color().unwrap_or(default))
-            .unwrap_or(default)
-    }
+    // pub fn color(&self, property: &str, query: &Selector) -> Color {
+    //     let default = Color { data: 0 };
+    //     self.get(property, query)
+    //         .map(|v| v.color().unwrap_or(default))
+    //         .unwrap_or(default)
+    // }
 
-    pub fn uint(&self, property: &str, query: &Selector) -> u32 {
-        self.get(property, query)
-            .map(|v| v.uint().unwrap_or(0))
-            .unwrap_or(0)
-    }
+    // pub fn uint(&self, property: &str, query: &Selector) -> u32 {
+    //     self.get(property, query)
+    //         .map(|v| v.uint().unwrap_or(0))
+    //         .unwrap_or(0)
+    // }
 
-    pub fn float(&self, property: &str, query: &Selector) -> f32 {
-        self.get(property, query)
-            .map(|v| v.float().unwrap_or(1.0))
-            .unwrap_or(1.0)
-    }
+    // pub fn float(&self, property: &str, query: &Selector) -> f32 {
+    //     self.get(property, query)
+    //         .map(|v| v.float().unwrap_or(1.0))
+    //         .unwrap_or(1.0)
+    // }
 
-    pub fn string(&self, property: &str, query: &Selector) -> String {
-        self.get(property, query)
-            .map(|v| v.string().unwrap_or(String::default()))
-            .unwrap_or(String::default())
-    }
+    // pub fn string(&self, property: &str, query: &Selector) -> String {
+    //     self.get(property, query)
+    //         .map(|v| v.string().unwrap_or(String::default()))
+    //         .unwrap_or(String::default())
+    // }
 }
 
 #[derive(Clone, Debug)]
 pub struct Rule {
-    pub selectors: Vec<Selector>,
+    pub selectors: Selectors,
     pub declarations: Vec<Declaration>,
 }
 
@@ -157,7 +133,8 @@ pub enum SelectorRelation {
 
 impl<T: Into<String>> From<T> for Selector {
     fn from(t: T) -> Self {
-        Selector::new().with(t.into())
+        unreachable!("asdasdasd")
+        // Selector::new().with(t.into())
     }
 }
 
@@ -182,89 +159,89 @@ impl Add<Self> for Specificity {
     }
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct Selector {
-    pub element: Option<String>,
-    pub classes: HashSet<String>,
-    pub pseudo_classes: HashSet<String>,
-    pub relation: Option<Box<SelectorRelation>>,
-}
+// #[derive(Clone, Debug, Default)]
+// pub struct Selector {
+//     pub element: Option<String>,
+//     pub classes: HashSet<String>,
+//     pub pseudo_classes: HashSet<String>,
+//     pub relation: Option<Box<SelectorRelation>>,
+// }
 
-impl Selector {
-    pub fn new() -> Self {
-        Selector {
-            element: None,
-            classes: HashSet::new(),
-            pseudo_classes: HashSet::new(),
-            relation: None,
-        }
-    }
+// impl Selector {
+//     pub fn new() -> Self {
+//         Selector {
+//             element: None,
+//             classes: HashSet::new(),
+//             pseudo_classes: HashSet::new(),
+//             relation: None,
+//         }
+//     }
 
-    fn specificity(&self) -> Specificity {
-        let s = Specificity([
-            0,
-            (self.classes.len() + self.pseudo_classes.len()) as u8,
-            if self.element.is_some() { 1 } else { 0 },
-        ]);
+//     fn specificity(&self) -> Specificity {
+//         let s = Specificity([
+//             0,
+//             (self.classes.len() + self.pseudo_classes.len()) as u8,
+//             if self.element.is_some() { 1 } else { 0 },
+//         ]);
 
-        if let Some(ref relation) = self.relation {
-            match **relation {
-                SelectorRelation::Ancestor(ref x) | SelectorRelation::Parent(ref x) => {
-                    return x.specificity() + s;
-                }
-            }
-        }
+//         if let Some(ref relation) = self.relation {
+//             match **relation {
+//                 SelectorRelation::Ancestor(ref x) | SelectorRelation::Parent(ref x) => {
+//                     return x.specificity() + s;
+//                 }
+//             }
+//         }
 
-        s
-    }
+//         s
+//     }
 
-    pub fn matches(&self, other: &Selector) -> bool {
-        if self.element.is_some() && self.element != other.element {
-            return false;
-        }
+//     pub fn matches(&self, other: &Selector) -> bool {
+//         if self.element.is_some() && self.element != other.element {
+//             return false;
+//         }
 
-        if !other.classes.is_superset(&self.classes) {
-            return false;
-        }
+//         if !other.classes.is_superset(&self.classes) {
+//             return false;
+//         }
 
-        if !other.pseudo_classes.is_superset(&self.pseudo_classes) {
-            return false;
-        }
+//         if !other.pseudo_classes.is_superset(&self.pseudo_classes) {
+//             return false;
+//         }
 
-        true
-    }
+//         true
+//     }
 
-    pub fn with_class<S: Into<String>>(mut self, class: S) -> Self {
-        self.classes.insert(class.into());
-        self
-    }
+//     pub fn with_class<S: Into<String>>(mut self, class: S) -> Self {
+//         self.classes.insert(class.into());
+//         self
+//     }
 
-    pub fn with<S: Into<String>>(mut self, element: S) -> Self {
-        self.element = Some(element.into());
-        self
-    }
+//     pub fn with<S: Into<String>>(mut self, element: S) -> Self {
+//         self.element = Some(element.into());
+//         self
+//     }
 
-    pub fn without_class<S: Into<String>>(mut self, class: S) -> Self {
-        self.classes.remove(&class.into());
-        self
-    }
+//     pub fn without_class<S: Into<String>>(mut self, class: S) -> Self {
+//         self.classes.remove(&class.into());
+//         self
+//     }
 
-    pub fn with_pseudo_class<S: Into<String>>(mut self, pseudo_class: S) -> Self {
-        self.pseudo_classes.insert(pseudo_class.into());
-        self
-    }
+//     pub fn with_pseudo_class<S: Into<String>>(mut self, pseudo_class: S) -> Self {
+//         self.pseudo_classes.insert(pseudo_class.into());
+//         self
+//     }
 
-    pub fn without_pseudo_class<S: Into<String>>(mut self, pseudo_class: S) -> Self {
-        self.pseudo_classes.remove(&pseudo_class.into());
-        self
-    }
-}
+//     pub fn without_pseudo_class<S: Into<String>>(mut self, pseudo_class: S) -> Self {
+//         self.pseudo_classes.remove(&pseudo_class.into());
+//         self
+//     }
+// }
 
-impl Selector {
-    pub fn is_empty(&self) -> bool {
-        self.element.is_none() && self.classes.is_empty() && self.pseudo_classes.is_empty()
-    }
-}
+// impl Selector {
+//     pub fn is_empty(&self) -> bool {
+//         self.element.is_none() && self.classes.is_empty() && self.pseudo_classes.is_empty()
+//     }
+// }
 
 #[derive(Clone, Debug)]
 pub struct Declaration {
@@ -333,7 +310,7 @@ impl RuleParser {
 }
 
 impl<'i> cssparser::QualifiedRuleParser<'i> for RuleParser {
-    type Prelude = Vec<Selector>;
+    type Prelude = Selectors;
     type QualifiedRule = Rule;
     type Error = CustomParseError;
 
@@ -390,72 +367,77 @@ impl<'i> cssparser::AtRuleParser<'i> for RuleParser {
 
 fn parse_selectors<'i, 't>(
     input: &mut Parser<'i, 't>,
-) -> Result<Vec<Selector>, ParseError<'i, CustomParseError>> {
-    let mut selectors = Vec::new();
-
-    let mut selector = Selector::default();
-
-    let mut first_token_in_selector = true;
-    while true {
-        let t = { let r = input.next(); if r.is_ok() { r.unwrap().clone() } else { break } };
-        match t {
-            // Element
-            Token::Ident(ref element_name) => {
-                if first_token_in_selector {
-                    selector.element = Some(element_name.to_string())
-                } else {
-                    let mut old_selector = Selector::new().with(element_name.to_string());
-                    mem::swap(&mut old_selector, &mut selector);
-                    selector.relation = Some(Box::new(SelectorRelation::Ancestor(old_selector)));
-                }
-            }
-
-            Token::Delim('>') => {
-                let mut old_selector = Selector::new().with(input.expect_ident()?.to_string());
-                mem::swap(&mut old_selector, &mut selector);
-                selector.relation = Some(Box::new(SelectorRelation::Parent(old_selector)));
-            }
-
-            // Any element
-            Token::Delim('*') => {}
-
-            // Class
-            Token::Delim('.') => {
-                selector.classes.insert(input.expect_ident()?.to_string());
-            }
-
-            // Pseudo-class
-            Token::Colon => {
-                selector
-                    .pseudo_classes
-                    .insert(input.expect_ident()?.to_string());
-            }
-
-            // This selector is done, on to the next one
-            Token::Comma => {
-                selectors.push(selector);
-                selector = Selector::default();
-                first_token_in_selector = true;
-                continue; // need to continue to avoid `first_token_in_selector` being set to false
-            }
-
-            t => {
-                let basic_error = input.current_source_location().new_basic_unexpected_token_error(t.clone());
-
-                return Err(basic_error.into());
-            }
-        }
-
-        first_token_in_selector = false;
+) -> Result<Selectors, ParseError<'i, CustomParseError>> {
+    use selectors::parser::SelectorList;
+    match SelectorList::parse(&KuchikiParser, input) {
+        Ok(list) => Ok(Selectors(list.0.into_iter().map(Selector).collect())),
+        _ => unreachable!("asd"),
     }
+    // let mut selectors = Vec::new();
 
-    selectors.push(selector);
+    // let mut selector = Selector::default();
 
-    if selectors.iter().any(|sel| sel.relation.is_some()) {
-        eprintln!("WARNING: Complex selector relations not implemented");
-    }
+    // let mut first_token_in_selector = true;
+    // while true {
+    //     let t = { let r = input.next(); if r.is_ok() { r.unwrap().clone() } else { break } };
+    //     match t {
+    //         // Element
+    //         Token::Ident(ref element_name) => {
+    //             if first_token_in_selector {
+    //                 selector.element = Some(element_name.to_string())
+    //             } else {
+    //                 let mut old_selector = Selector::new().with(element_name.to_string());
+    //                 mem::swap(&mut old_selector, &mut selector);
+    //                 selector.relation = Some(Box::new(SelectorRelation::Ancestor(old_selector)));
+    //             }
+    //         }
 
-    Ok(selectors)
+    //         Token::Delim('>') => {
+    //             let mut old_selector = Selector::new().with(input.expect_ident()?.to_string());
+    //             mem::swap(&mut old_selector, &mut selector);
+    //             selector.relation = Some(Box::new(SelectorRelation::Parent(old_selector)));
+    //         }
+
+    //         // Any element
+    //         Token::Delim('*') => {}
+
+    //         // Class
+    //         Token::Delim('.') => {
+    //             selector.classes.insert(input.expect_ident()?.to_string());
+    //         }
+
+    //         // Pseudo-class
+    //         Token::Colon => {
+    //             selector
+    //                 .pseudo_classes
+    //                 .insert(input.expect_ident()?.to_string());
+    //         }
+
+    //         // This selector is done, on to the next one
+    //         Token::Comma => {
+    //             selectors.push(selector);
+    //             selector = Selector::default();
+    //             first_token_in_selector = true;
+    //             continue; // need to continue to avoid `first_token_in_selector` being set to false
+    //         }
+
+    //         t => {
+    //             let basic_error = input.current_source_location().new_basic_unexpected_token_error(t.clone());
+
+    //             return Err(basic_error.into());
+    //         }
+    //     }
+
+    //     first_token_in_selector = false;
+    // }
+
+    // selectors.push(selector);
+
+    // if selectors.iter().any(|sel| sel.relation.is_some()) {
+    //     eprintln!("WARNING: Complex selector relations not implemented");
+    // }
+
+    // Ok(selectors)
 }
 
 struct DeclarationParser;
