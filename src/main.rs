@@ -11,6 +11,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+#[macro_use] extern crate matches;
+
 extern crate cgmath;
 #[macro_use]
 extern crate gfx;
@@ -52,6 +55,8 @@ mod transform;
 use transform::*;
 
 mod layout_system;
+mod color;
+mod styling;
 mod style_system;
 use style_system::*;
 
@@ -227,6 +232,10 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
 {
     fn new(factory: F, backend: shade::Backend, window_targets: gfx_app::WindowTargets<R>) -> Self {
         println!("Backend: {:?}", backend);
+
+        let r = styling::parse("Button { color: #ff0000; }")[0].clone();
+        
+        println!("{:?}", r);
 
         let mut world = World::new();
         world.register::<Transform>();

@@ -13,6 +13,8 @@ warmy = "0.11.1"
 gfx_text = { path = "gfx_text" }
 stretch = "0.1.12"
 selectors = "0.21.0"
+cssparser = "*"
+matches = "*"
 
 [dependencies.env_logger]
 version = "0.5"
