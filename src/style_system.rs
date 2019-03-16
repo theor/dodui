@@ -152,8 +152,7 @@ impl Selectors {
 #[derive(Debug, Clone)]
 pub struct EntityElement {
     local: String,
-    ns: String,
-    
+    pseudo: Pseudo,
 }
 
 impl specs::Component for EntityElement {
@@ -208,7 +207,10 @@ impl Element for EntityElement {
     ) -> bool
     where
         F: FnMut(&Self, ElementSelectorFlags) {
-            false
+            match pc {
+                PseudoClass::Hover => self.pseudo.hover,
+                _ => false,
+            }
         }
 
     fn match_pseudo_element(
@@ -326,12 +328,12 @@ impl<'a> System<'a> for StyleSystem {
 
     #[allow(dead_code)]
     fn run(&mut self, (pseudo, bg, mut mat): Self::SystemData) {
-         let selectors = Selectors::compile(":hover").unwrap();
+        //  let selectors = Selectors::compile(":hover").unwrap();
         //  let mut top = TopLevelRuleParser {};
         //  let stylesheet = cssparser::RuleListParser::new_for_stylesheet(&mut top, parser: P).expect("Wasn't a valid stylesheet");
 
         //  selectors.matches(element: &EntityElement)
-         println!("{:?}", selectors);
+        //  println!("{:?}", selectors);
         for (pseudo, bg, mut mat) in (pseudo.maybe(), &bg, &mut mat).join() {
             mat.color = if pseudo.map_or(false, |v| v.hover) {
                 bg.color
@@ -366,11 +368,24 @@ impl StyleBackground {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Pseudo {
     pub hover: bool,
 }
 
 impl specs::Component for Pseudo {
     type Storage = DenseVecStorage<Self>;
+}
+
+
+#[cfg(test)]
+mod tests {
+    use crate::style_system::*;
+    #[test]
+    fn match_hover() {
+        let s = Selectors::compile(":hover").unwrap();
+
+        assert_eq!(false, s.matches(&EntityElement { local: "asd".to_string(), pseudo: Pseudo { hover:false }}));
+        assert_eq!(true, s.matches(&EntityElement { local: "asd".to_string(), pseudo: Pseudo { hover:true }}));
+    }
 }

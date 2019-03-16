@@ -75,10 +75,9 @@ impl fmt::Debug for Color {
 mod tests {
     #[test]
     fn partial_eq() {
-        use Color;
+        use crate::color::Color;
         assert_eq!(true, Color::rgb(1, 2, 3) == Color::rgba(1, 2, 3, 200));
         assert_eq!(false, Color::rgb(1, 2, 3) == Color::rgba(11, 2, 3, 200));
         assert_eq!(true, Color::rgba(1, 2, 3, 200) == Color::rgba(1, 2, 3, 200));
     }
-
 }

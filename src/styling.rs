@@ -51,7 +51,7 @@ impl Theme {
         }
     }
 
-    fn all_rules(&self) -> Vec<Rule> {
+    pub fn all_rules(&self) -> Vec<Rule> {
         if let Some(ref parent) = self.parent {
             self.rules
                 .iter()

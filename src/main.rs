@@ -234,7 +234,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
         println!("Backend: {:?}", backend);
 
         let r = styling::parse("Button { color: #ff0000; }")[0].clone();
-        
+        // r.selectors.matches()
         println!("{:?}", r);
 
         let mut world = World::new();
