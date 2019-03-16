@@ -8,6 +8,49 @@ use selectors::matching::ElementSelectorFlags;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use cssparser::{self, ToCss, CowRcStr, SourceLocation, ParseError};
 
+// use string_interner::StringInterner;
+// use std::sync::Mutex;
+
+// #[derive(Debug, PartialEq, Eq, Clone)]
+// pub struct Sym(string_interner::Sym);
+
+// impl Sym {
+//     pub fn resolve<'a>(&'a self) -> Option<String> {
+//         let si: &string_interner::DefaultStringInterner = &STRING_INTERNER.lock().unwrap();
+//         si.resolve(self.0).map(|x| x.to_owned())
+//     }
+// }
+
+// lazy_static! {
+//     static ref STRING_INTERNER: Mutex<string_interner::DefaultStringInterner> = {
+//         let m = string_interner::DefaultStringInterner::new();
+//         Mutex::new(m)
+//     };
+// }
+
+// impl std::fmt::Display for Sym {
+//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+//         match STRING_INTERNER.lock().unwrap().resolve(self.0) {
+//             Some(x) => { x.fmt(f); Ok(()) },
+//             None => panic!("resolve"),
+//         }
+//     }
+// }
+
+// impl std::borrow::Borrow<Sym> for String {
+//     fn borrow(&self) -> &Sym {
+        
+//         Sym(STRING_INTERNER.lock().unwrap().get_or_intern(self.as_str()))
+//     }
+// }
+
+// impl<'a> std::convert::From<&'a str> for Sym {
+//     fn from(s:&'a str) -> Self {
+//         let sym = STRING_INTERNER.lock().unwrap().get_or_intern(s);
+//         Self(sym)
+//     }
+// }
+
 #[derive(Debug, Clone)]
 pub struct KuchikiSelectors;
 
@@ -151,12 +194,46 @@ impl Selectors {
 }
 #[derive(Debug, Clone)]
 pub struct EntityElement {
-    local: String,
+    id: Option<String>,
+    typeid: String,
+    classes: Vec<String>,
     pseudo: Pseudo,
 }
 
 impl specs::Component for EntityElement {
     type Storage = DenseVecStorage<Self>;
+}
+
+impl EntityElement {
+    pub fn new(typeid: String) -> Self {
+        EntityElement {
+            typeid,
+            id: None,
+            pseudo: Pseudo { hover: false},
+            classes: Vec::new(),
+        }
+    }
+
+    pub fn with_hover(self, hover: bool) -> Self {
+        EntityElement {
+            pseudo: Pseudo { hover },
+            ..self
+        }
+    }
+
+    pub fn with_id(self, id: String) -> Self {
+        EntityElement {
+            id: Some(id),
+            ..self
+        }
+    }
+
+    pub fn add_class(self, cl: String) -> Self {
+        EntityElement {
+            classes: vec![cl],
+            ..self
+        }
+    }
 }
 
 impl Element for EntityElement {
@@ -185,7 +262,10 @@ impl Element for EntityElement {
 
     fn is_html_element_in_html_document(&self) -> bool { false }
 
-    fn local_name(&self) -> &<Self::Impl as SelectorImpl>::BorrowedLocalName { &self.local }
+    fn local_name(&self) -> &<Self::Impl as SelectorImpl>::BorrowedLocalName { 
+        // &self.typeid.resolve().unwrap()
+        &self.typeid
+    }
 
     /// Empty string for no namespace
     fn namespace(&self) -> &<Self::Impl as SelectorImpl>::BorrowedNamespaceUrl { &"" }
@@ -236,13 +316,13 @@ impl Element for EntityElement {
         &self,
         id: &<Self::Impl as SelectorImpl>::Identifier,
         case_sensitivity: CaseSensitivity,
-    ) -> bool { false }
+    ) -> bool { self.id.as_ref().map_or(false, |x| x == id) }
 
     fn has_class(
         &self,
         name: &<Self::Impl as SelectorImpl>::ClassName,
         case_sensitivity: CaseSensitivity,
-    ) -> bool { false }
+    ) -> bool { self.classes.contains(name) }
 
     /// Returns whether this element matches `:empty`.
     ///
@@ -385,7 +465,31 @@ mod tests {
     fn match_hover() {
         let s = Selectors::compile(":hover").unwrap();
 
-        assert_eq!(false, s.matches(&EntityElement { local: "asd".to_string(), pseudo: Pseudo { hover:false }}));
-        assert_eq!(true, s.matches(&EntityElement { local: "asd".to_string(), pseudo: Pseudo { hover:true }}));
+        assert_eq!(false, s.matches(&EntityElement::new("a".into()).with_hover(false) ));
+        assert_eq!(true, s.matches(&EntityElement::new("a".into()).with_hover(true)));
+    }
+
+    #[test]
+    fn match_type() {
+        let s = Selectors::compile("A").unwrap();
+
+        assert_eq!(false, s.matches(&EntityElement::new("B".into())));
+        assert_eq!(true, s.matches(&EntityElement::new("A".into())));
+    }
+
+    #[test]
+    fn match_id() {
+        let s = Selectors::compile("#id").unwrap();
+
+        assert_eq!(false, s.matches(&EntityElement::new("B".into()).with_id("asd".into())));
+        assert_eq!(true, s.matches(&EntityElement::new("A".into()).with_id("id".into())));
+    }
+
+    #[test]
+    fn match_class() {
+        let s = Selectors::compile(".a").unwrap();
+
+        assert_eq!(false, s.matches(&EntityElement::new("X".into()).add_class("b".into())));
+        assert_eq!(true, s.matches(&EntityElement::new("X".into()).add_class("a".into())));
     }
 }
