@@ -26,11 +26,10 @@ impl<'a> System<'a> for LayoutSystem {
             ..Default::default()
         };
 
-        for (entity, /*_,*/ local, global, _) in (
+        for (entity, /*_,*/ local, _) in (
             &*entities,
             // &self.local_modified,
             &locals,
-            &mut globals,
             !&parents,
         )
             .join()
@@ -40,10 +39,6 @@ impl<'a> System<'a> for LayoutSystem {
             root.children.push(branch);
             // self.global_modified.add(entity.id());
             // global.0 = local.matrix();
-            debug_assert!(
-                global.is_finite(),
-                format!("Entity {:?} had a non-finite `Transform`", entity)
-            );
         }
 
         let layout = stretch::compute(&root, Size::undefined()).unwrap();

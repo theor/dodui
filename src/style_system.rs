@@ -242,6 +242,7 @@ impl Element for EntityElement {
     /// Converts self into an opaque representation.
     fn opaque(&self) -> OpaqueElement { OpaqueElement::new(&self) }
 
+    // TODO
     fn parent_element(&self) -> Option<Self> { None }
 
     /// Whether the parent node of this element is a shadow root.
@@ -475,6 +476,14 @@ mod tests {
 
         assert_eq!(false, s.matches(&EntityElement::new("B".into())));
         assert_eq!(true, s.matches(&EntityElement::new("A".into())));
+    }
+
+    #[test]
+    fn match_parent() {
+        let s = Selectors::compile("A B").unwrap();
+
+        assert_eq!(false, s.matches(&EntityElement::new("B".into())));
+        assert_eq!(false, s.matches(&EntityElement::new("A".into())));
     }
 
     #[test]
