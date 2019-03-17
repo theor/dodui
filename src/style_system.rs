@@ -499,7 +499,22 @@ impl specs::Component for Pseudo {
 
 #[cfg(test)]
 mod tests {
-    use crate::style_system::*;
+    use crate::style_system::*; 
+    use crate::transform::Parent;
+
+    fn world() -> World {
+        let mut w = specs::World::new();
+        w.register::<Parent>();
+        w.register::<EElement>();
+        w
+    }
+
+    fn world_one_element(e: EElement) -> (World, Entity){
+        let mut w = world();
+        let ea = w.create_entity().with(e).build();
+        (w, ea)
+    }
+
     // #[test]
     // fn match_hover() {
     //     let s = Selectors::compile(":hover").unwrap();
@@ -522,26 +537,23 @@ mod tests {
 
     #[test]
     fn match_parent() {
-        use crate::transform::Parent;
         let s = Selectors::compile("A B").unwrap();
 
-        let mut w = specs::World::new();
-        w.register::<Parent>();
-        w.register::<EElement>();
+        let mut w = world();
 
         let ea = w.create_entity().with(EElement::new("A".into())).build();
         let eb = w.create_entity().with(EElement::new("B".into())).with(Parent { entity: ea }).build();
         let eb2 = w.create_entity().with(EElement::new("B".into())).with(Parent { entity: eb }).build();
         let ec = w.create_entity().with(EElement::new("C".into())).with(Parent { entity: eb2 }).build();
 
-        let (ee,p) : (ReadStorage<EElement>, ReadStorage<Parent>) = w.system_data();
+        let x : (ReadStorage<EElement>, ReadStorage<Parent>) = w.system_data();
 
         // let e = ;
-        assert_eq!(false, s.matches(&EntityElement((&ee,&p), ea)));
+        assert_eq!(false, s.matches(&EntityElement(x.as_ref(), ea)));
         // let e = EElement::new("A".into());
-        assert_eq!(true,s.matches(&EntityElement((&ee,&p), eb)));
-        assert_eq!(true,s.matches(&EntityElement((&ee,&p), eb2)));
-        assert_eq!(false,s.matches(&EntityElement((&ee,&p), ec)));
+        assert_eq!(true,s.matches(&EntityElement(x.as_ref(), eb)));
+        assert_eq!(true,s.matches(&EntityElement(x.as_ref(), eb2)));
+        assert_eq!(false,s.matches(&EntityElement(x.as_ref(), ec)));
         /* .with_child(EntityElement::new("B".into())) */
     }
 
