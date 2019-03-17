@@ -4,14 +4,12 @@
 use cssparser::CowRcStr;
 use cssparser::{
     SourceLocation,
-    self, BasicParseError, DeclarationListParser, ParseError, Parser, ParserInput,
+    self, DeclarationListParser, ParseError, Parser, ParserInput,
     Token,
 };
 
 use crate::color::Color;
 
-use std::collections::HashSet;
-use std::mem;
 use std::ops::Add;
 use std::path::Path;
 use std::sync::Arc;
@@ -19,7 +17,7 @@ use std::sync::Arc;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Read;
-use crate::style_system::{Selector, Selectors, KuchikiSelectors, KuchikiParser};
+use crate::style_system::{Selector, Selectors, KuchikiParser};
 
 #[derive(Debug, Default, Clone)]
 pub struct Theme {

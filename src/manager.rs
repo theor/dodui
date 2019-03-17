@@ -212,7 +212,6 @@ fn get_output_path(shader_type: &ShaderType, path: &Path) -> PathBuf {
 
 fn compile(shader_type:ShaderType, path: &Path) -> Result<Vec<u8>, Error> {
   use std::process::Command;
-  use std::io::Write;
 
   let fxc = "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\x64\\fxc.exe";
   let output_path = get_output_path(&shader_type, path);

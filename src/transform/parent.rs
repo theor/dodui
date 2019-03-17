@@ -1,6 +1,7 @@
 use specs::prelude::*;
 use specs_hierarchy::Hierarchy;
 
+#[derive(Debug, Clone)]
 pub struct Parent {
     pub entity: Entity,
 }

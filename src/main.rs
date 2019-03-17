@@ -243,6 +243,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
         world.register::<Vel>();
         world.register::<rendering::Material>();
         world.register::<rendering::Text>();
+        world.register::<style_system::EElement>();
         world.register::<Event>();
         world.add_resource::<MouseEvent>(Default::default());
         world.add_resource::<Events>(Default::default());
