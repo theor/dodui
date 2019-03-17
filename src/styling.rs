@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! This module contains all css theming releated resources.
 
 use cssparser::CowRcStr;

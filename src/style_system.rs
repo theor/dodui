@@ -8,34 +8,34 @@ use selectors::matching::ElementSelectorFlags;
 use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
 use cssparser::{self, ToCss, CowRcStr, SourceLocation, ParseError};
 
-// use string_interner::StringInterner;
-// use std::sync::Mutex;
+use string_interner::StringInterner;
+use std::sync::Mutex;
 
-// #[derive(Debug, PartialEq, Eq, Clone)]
-// pub struct Sym(string_interner::Sym);
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub struct Sym(string_interner::Sym);
 
-// impl Sym {
-//     pub fn resolve<'a>(&'a self) -> Option<String> {
-//         let si: &string_interner::DefaultStringInterner = &STRING_INTERNER.lock().unwrap();
-//         si.resolve(self.0).map(|x| x.to_owned())
-//     }
-// }
+impl Sym {
+    pub fn resolve<'a>(&'a self) -> Option<String> {
+        let si: &string_interner::DefaultStringInterner = &STRING_INTERNER.lock().unwrap();
+        si.resolve(self.0).map(|x| x.to_owned())
+    }
+}
 
-// lazy_static! {
-//     static ref STRING_INTERNER: Mutex<string_interner::DefaultStringInterner> = {
-//         let m = string_interner::DefaultStringInterner::new();
-//         Mutex::new(m)
-//     };
-// }
+lazy_static! {
+    static ref STRING_INTERNER: Mutex<string_interner::DefaultStringInterner> = {
+        let m = string_interner::DefaultStringInterner::new();
+        Mutex::new(m)
+    };
+}
 
-// impl std::fmt::Display for Sym {
-//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-//         match STRING_INTERNER.lock().unwrap().resolve(self.0) {
-//             Some(x) => { x.fmt(f); Ok(()) },
-//             None => panic!("resolve"),
-//         }
-//     }
-// }
+impl std::fmt::Display for Sym {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match STRING_INTERNER.lock().unwrap().resolve(self.0) {
+            Some(x) => { x.fmt(f) },
+            None => panic!("resolve"),
+        }
+    }
+}
 
 // impl std::borrow::Borrow<Sym> for String {
 //     fn borrow(&self) -> &Sym {
@@ -44,25 +44,32 @@ use cssparser::{self, ToCss, CowRcStr, SourceLocation, ParseError};
 //     }
 // }
 
-// impl<'a> std::convert::From<&'a str> for Sym {
-//     fn from(s:&'a str) -> Self {
-//         let sym = STRING_INTERNER.lock().unwrap().get_or_intern(s);
-//         Self(sym)
-//     }
-// }
+impl<'a> std::convert::From<&'a str> for Sym {
+    fn from(s:&'a str) -> Self {
+        let sym = STRING_INTERNER.lock().unwrap().get_or_intern(s);
+        Self(sym)
+    }
+}
+
+impl<'a> std::convert::From<String> for Sym {
+    fn from(s:String) -> Self {
+        let sym = STRING_INTERNER.lock().unwrap().get_or_intern(s);
+        Self(sym)
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct KuchikiSelectors;
 
 impl SelectorImpl for KuchikiSelectors {
     type AttrValue = String;
-    type Identifier = String;//LocalName;
-    type ClassName = String;//LocalName;
-    type LocalName = String;//LocalName;
+    type Identifier = Sym;//LocalName;
+    type ClassName = Sym;//LocalName;
+    type LocalName = Sym;//LocalName;
     type NamespacePrefix = String;//LocalName;
     type NamespaceUrl = String;//Namespace;
     type BorrowedNamespaceUrl = str;//Namespace;
-    type BorrowedLocalName = String;//LocalName;
+    type BorrowedLocalName = Sym;//LocalName;
 
     type NonTSPseudoClass = PseudoClass;
     type PseudoElement = PseudoElement;
@@ -194,9 +201,9 @@ impl Selectors {
 }
 #[derive(Debug, Clone)]
 pub struct EntityElement {
-    id: Option<String>,
-    typeid: String,
-    classes: Vec<String>,
+    id: Option<Sym>,
+    typeid: Sym,
+    classes: std::collections::HashSet<Sym>,
     pseudo: Pseudo,
 }
 
@@ -207,10 +214,10 @@ impl specs::Component for EntityElement {
 impl EntityElement {
     pub fn new(typeid: String) -> Self {
         EntityElement {
-            typeid,
+            typeid: typeid.into(),
             id: None,
             pseudo: Pseudo { hover: false},
-            classes: Vec::new(),
+            classes: Default::default(),
         }
     }
 
@@ -223,14 +230,17 @@ impl EntityElement {
 
     pub fn with_id(self, id: String) -> Self {
         EntityElement {
-            id: Some(id),
+            id: Some(id.into()),
             ..self
         }
     }
 
-    pub fn add_class(self, cl: String) -> Self {
+    pub fn add_class(mut self, cl: String) -> Self {
+        use std::iter::FromIterator;
+        let mut classes = std::collections::HashSet::from_iter(self.classes.drain());
+        classes.insert(cl.into());
         EntityElement {
-            classes: vec![cl],
+            classes,
             ..self
         }
     }
@@ -483,7 +493,7 @@ mod tests {
         let s = Selectors::compile("A B").unwrap();
 
         assert_eq!(false, s.matches(&EntityElement::new("B".into())));
-        assert_eq!(false, s.matches(&EntityElement::new("A".into())));
+        assert_eq!(true,s.matches(&EntityElement::new("A".into())/* .with_child(EntityElement::new("B".into())) */));
     }
 
     #[test]
