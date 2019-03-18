@@ -438,29 +438,48 @@ impl<'a> System<'a> for StyleSystem {
         ReadStorage<'a, Pseudo>,
         ReadStorage<'a, crate::transform::Parent>,
         ReadStorage<'a, EElement>,
-        ReadStorage<'a, StyleBackground>,
+        WriteStorage<'a, StyleBackground>,
         WriteStorage<'a, crate::rendering::Material>,
     );
 
     #[allow(dead_code)]
-    fn run(&mut self, (entities, pseudo, parent, ee, bg, mut mat): Self::SystemData) {
-         let selectors = Selectors::compile(":hover").unwrap();
+    fn run(&mut self, (entities, pseudo, parent, ee, mut bg, mut mat): Self::SystemData) {
+
+        // use crate::manager::*;
+        // let mut ctx = Ctx::new();
+
+        // let dep = SimpleKey::Physical(("style/style.css").into());
+        // match store.get::<ShaderSet>(&dep, &mut ctx) {
+        //     Ok(css) => {},
+        //     _ => {},
+        // }
+
+        let stylesheet = crate::styling::parse("* { background: #ff0000ff; } Label { background: #ffff00ff; } ");
+        
+
+        //  let selectors = Selectors::compile(":hover").unwrap();
         //  let mut top = TopLevelRuleParser {};
         //  let stylesheet = cssparser::RuleListParser::new_for_stylesheet(&mut top, parser: P).expect("Wasn't a valid stylesheet");
 
-        let matching_entities: Vec<Entity> = (&entities, &ee).join().map(|x| x.0).collect::<Vec<Entity>>();
+        let mut matching_entities: Vec<Entity> = Vec::new();
+        matching_entities.extend((&entities, &ee).join().map(|x| x.0));
         for e in matching_entities.iter() {
-            selectors.matches(&EntityElement((&ee, &parent), *e));
+            for rule in stylesheet.iter() {
+                if rule.selectors.matches(&EntityElement((&ee, &parent), *e)) {
+                    for declaration in rule.declarations.iter(){
+                        match declaration.property.as_ref() {
+                            "background" => { bg.get_mut(*e).unwrap().color = declaration.value.color().unwrap().into() },
+                            _ => unimplemented!(),
+                        }
+                    }
+                }
+            }
         }
 
         //  selectors.matches(element: &EntityElement)
         //  println!("{:?}", selectors);
-        for (pseudo, bg, mut mat) in (pseudo.maybe(), &bg, &mut mat).join() {
-            mat.color = if pseudo.map_or(false, |v| v.hover) {
-                bg.color
-            } else {
-                bg.color / 2
-            };
+        for (bg, mut mat) in (&bg, &mut mat).join() {
+            mat.color = bg.color;
         }
     }
 }

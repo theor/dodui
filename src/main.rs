@@ -234,9 +234,9 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
     fn new(factory: F, backend: shade::Backend, window_targets: gfx_app::WindowTargets<R>) -> Self {
         println!("Backend: {:?}", backend);
 
-        let r = styling::parse("Button { color: #ff0000; }")[0].clone();
+        // let r = styling::parse("* { background-color: #ff0000; }")[0].clone();
         // r.selectors.matches()
-        println!("{:?}", r);
+        // println!("{:?}", r);
 
         let mut world = World::new();
         world.register::<Transform>();
@@ -274,6 +274,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
         let e1 = world
             .create_entity()
             .with(Transform::new(50.0, 50.0).with_size(200.0, 50.0))
+            .with(EElement::new("Button".into()))
             .with(StyleBackground::from_color(255, 0, 0, 255))
             .with(<Pseudo as Default>::default())
             .with(rendering::Material::default())
@@ -288,6 +289,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
         let e2 = world
             .create_entity()
             .with(Transform::new(5.0, 5.0).with_size(190.0, 40.0))
+            .with(EElement::new("Border".into()))
             .with(StyleBackground::from_color(0, 255, 0, 255))
             .with(<Pseudo as Default>::default())
             .with(rendering::Material::default())
@@ -297,6 +299,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
         let _e3 = world
             .create_entity()
             .with(Transform::new(5.0, 5.0).with_size(180.0, 30.0))
+            .with(EElement::new("Label".into()))
             .with(StyleBackground::from_color(0, 0, 255, 255))
             .with(<Pseudo as Default>::default())
             .with(rendering::Material::default())
@@ -309,6 +312,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
         let _e4 = world
             .create_entity()
             .with(Transform::new(400.0, 400.0))
+            .with(EElement::new("Button".into()))
             .with(StyleBackground::from_color(255, 255, 0, 255))
             // .with(<Pseudo as Default>::default())
             .with(rendering::Material::default())

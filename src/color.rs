@@ -73,6 +73,12 @@ impl fmt::Debug for Color {
     }
 }
 
+impl std::convert::Into<cgmath::Vector4<u8>> for Color {
+    fn into(self) -> cgmath::Vector4<u8> {
+        cgmath::Vector4::new(self.r(), self.g(), self.b(), self.a())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
