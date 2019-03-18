@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use specs::prelude::*;
 
 use cgmath::Vector4;

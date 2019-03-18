@@ -44,7 +44,7 @@ impl<'a> System<'a> for LayoutSystem {
         let layout = stretch::compute(&root, Size::undefined()).unwrap();
 
         let mut i = 0;
-        for (entity, /*_,*/ local, _) in (
+        for (entity, /*_,*/ _local, _) in (
             &*entities,
             // &self.local_modified,
             &locals,

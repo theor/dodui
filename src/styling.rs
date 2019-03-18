@@ -131,7 +131,7 @@ pub enum SelectorRelation {
 }
 
 impl<T: Into<String>> From<T> for Selector {
-    fn from(t: T) -> Self {
+    fn from(_t: T) -> Self {
         unreachable!("asdasdasd")
         // Selector::new().with(t.into())
     }
@@ -295,8 +295,8 @@ pub enum CustomParseError {
 }
 
 impl<'t> From<CustomParseError> for ParseError<'t, CustomParseError> {
-    fn from(e: CustomParseError) -> Self {
-        ParseError::from(e)
+    fn from(_e: CustomParseError) -> Self {
+        panic!("wtf");
     }
 }
 
@@ -324,7 +324,7 @@ impl<'i> cssparser::QualifiedRuleParser<'i> for RuleParser {
     fn parse_block<'t>(
         &mut self,
         selectors: Self::Prelude,
-        location: SourceLocation,
+        _location: SourceLocation,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self::QualifiedRule, ParseError<'i, Self::Error>> {
         let decl_parser = DeclarationParser {};

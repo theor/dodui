@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 #[cfg(not(feature = "no_std"))]
 use std::fmt;
 

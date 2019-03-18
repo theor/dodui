@@ -117,7 +117,7 @@ impl<'a> System<'a> for ConsumeEventsSystem {
     type SystemData = (Entities<'a>, ReadStorage<'a, Event>);
 
     fn run(&mut self, (entities, event): Self::SystemData) {
-        for (e, event) in (&entities, &event).join() {
+        for (_e, event) in (&entities, &event).join() {
             println!("Event {:?}", event);
         }
     }
@@ -156,7 +156,7 @@ impl<'a> System<'a> for PickSystem {
         let p: cgmath::Point3<f32> =
             cgmath::Point3::new(mouse.position.0 as f32, mouse.position.1 as f32, 0.0);
 
-        for (e, pos, tr, mut pseudo) in (&entities, &pos, &tr, &mut pseudo).join() {
+        for (e, pos, _tr, mut pseudo) in (&entities, &pos, &tr, &mut pseudo).join() {
             let p2 = pos.0.transform_point(cgmath::Point3::new(0.0, 0.0, 0.0));
             let size = pos.1;
             if p.x as f32 >= p2.x

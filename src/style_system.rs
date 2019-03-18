@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use specs::prelude::*;
 use selectors::*;
 use selectors::parser::*;
@@ -9,6 +11,8 @@ use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivit
 use cssparser::{self, ToCss, CowRcStr, SourceLocation, ParseError};
 
 use std::sync::Mutex;
+
+use crate::transform::Parent;
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct Sym(string_interner::Sym);
@@ -245,12 +249,10 @@ impl EElement {
     }
 }
 
-use crate::transform::Parent;
-
 type EntityElementStorage<'a> = (&'a ReadStorage<'a, EElement>, &'a ReadStorage<'a, Parent>);
 
 #[derive(Clone)]
-struct EntityElement<'a>(EntityElementStorage<'a>, Entity);
+pub struct EntityElement<'a>(EntityElementStorage<'a>, Entity);
 
 impl<'a> std::fmt::Debug for EntityElement<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -303,18 +305,18 @@ impl<'a> Element for EntityElement<'a> {
 
     fn attr_matches(
         &self,
-        ns: &NamespaceConstraint<&<Self::Impl as SelectorImpl>::NamespaceUrl>,
-        local_name: &<Self::Impl as SelectorImpl>::LocalName,
-        operation: &AttrSelectorOperation<&<Self::Impl as SelectorImpl>::AttrValue>,
+        _ns: &NamespaceConstraint<&<Self::Impl as SelectorImpl>::NamespaceUrl>,
+        _local_name: &<Self::Impl as SelectorImpl>::LocalName,
+        _operation: &AttrSelectorOperation<&<Self::Impl as SelectorImpl>::AttrValue>,
     ) -> bool {
-        false
+        unimplemented!();
     }
 
     fn match_non_ts_pseudo_class<F>(
         &self,
         pc: &<Self::Impl as SelectorImpl>::NonTSPseudoClass,
-        context: &mut MatchingContext<Self::Impl>,
-        flags_setter: &mut F,
+        _context: &mut MatchingContext<Self::Impl>,
+        _flags_setter: &mut F,
     ) -> bool
     where
         F: FnMut(&Self, ElementSelectorFlags) {
@@ -326,8 +328,8 @@ impl<'a> Element for EntityElement<'a> {
 
     fn match_pseudo_element(
         &self,
-        pe: &<Self::Impl as SelectorImpl>::PseudoElement,
-        context: &mut MatchingContext<Self::Impl>,
+        _pe: &<Self::Impl as SelectorImpl>::PseudoElement,
+        _context: &mut MatchingContext<Self::Impl>,
     ) -> bool { false }
 
     /// Whether this element is a `link`.
@@ -346,13 +348,13 @@ impl<'a> Element for EntityElement<'a> {
     fn has_id(
         &self,
         id: &<Self::Impl as SelectorImpl>::Identifier,
-        case_sensitivity: CaseSensitivity,
+        _case_sensitivity: CaseSensitivity,
     ) -> bool { self.eelt().id.as_ref().map_or(false, |x| x == id) }
 
     fn has_class(
         &self,
         name: &<Self::Impl as SelectorImpl>::ClassName,
-        case_sensitivity: CaseSensitivity,
+        _case_sensitivity: CaseSensitivity,
     ) -> bool { self.eelt().classes.contains(name) }
 
     /// Returns whether this element matches `:empty`.
@@ -509,31 +511,36 @@ mod tests {
         w
     }
 
-    fn world_one_element(e: EElement) -> (World, Entity){
-        let mut w = world();
-        let ea = w.create_entity().with(e).build();
-        (w, ea)
+    fn check(res: bool, w: &mut World, s: &Selectors, e: EElement, parent: Option<Entity>) -> Entity {
+        let mut e = w.create_entity().with(e);
+        if let Some(parent) = parent {
+            e = e.with(Parent { entity: parent });
+        }
+        let e = e.build();
+        let (ee,p) : (ReadStorage<EElement>, ReadStorage<Parent>) = w.system_data();
+
+        assert_eq!(res, s.matches(&EntityElement((&ee,&p), e)));
+
+        e
     }
 
-    // #[test]
-    // fn match_hover() {
-    //     let s = Selectors::compile(":hover").unwrap();
+    #[test]
+    fn match_hover() {
+        let s = Selectors::compile(":hover").unwrap();
+        let mut w = world();
 
-    //     let e = EElement::new("a".into()).with_hover(false);
-    //     assert_eq!(false, s.matches(&EntityElement::new(&e)));
-    //     let e = EElement::new("a".into()).with_hover(true);
-    //     assert_eq!(true, s.matches(&EntityElement::new(&e)));
-    // }
+        check(false, &mut w, &s, EElement::new("B".into()).with_hover(false), None);
+        check(true, &mut w, &s, EElement::new("B".into()).with_hover(true), None);
+    }
 
-    // #[test]
-    // fn match_type() {
-    //     let s = Selectors::compile("A").unwrap();
+    #[test]
+    fn match_type() {
+        let s = Selectors::compile("A").unwrap();
+        let mut w = world();
 
-    //     let e = EElement::new("B".into());
-    //     assert_eq!(false, s.matches(&EntityElement::new(&e)));
-    //     let e = EElement::new("A".into());
-    //     assert_eq!(true, s.matches(&EntityElement::new(&e)));
-    // }
+        check(false, &mut w, &s, EElement::new("B".into()), None);
+        check(true, &mut w, &s, EElement::new("A".into()), None);
+    }
 
     #[test]
     fn match_parent() {
@@ -541,39 +548,27 @@ mod tests {
 
         let mut w = world();
 
-        let ea = w.create_entity().with(EElement::new("A".into())).build();
-        let eb = w.create_entity().with(EElement::new("B".into())).with(Parent { entity: ea }).build();
-        let eb2 = w.create_entity().with(EElement::new("B".into())).with(Parent { entity: eb }).build();
-        let ec = w.create_entity().with(EElement::new("C".into())).with(Parent { entity: eb2 }).build();
-
-        let x : (ReadStorage<EElement>, ReadStorage<Parent>) = w.system_data();
-
-        // let e = ;
-        assert_eq!(false, s.matches(&EntityElement(x.as_ref(), ea)));
-        // let e = EElement::new("A".into());
-        assert_eq!(true,s.matches(&EntityElement(x.as_ref(), eb)));
-        assert_eq!(true,s.matches(&EntityElement(x.as_ref(), eb2)));
-        assert_eq!(false,s.matches(&EntityElement(x.as_ref(), ec)));
-        /* .with_child(EntityElement::new("B".into())) */
+        let ea = check(false, &mut w, &s, EElement::new("A".into()), None);
+        let eb = check(true, &mut w, &s, EElement::new("B".into()), Some(ea));
+        let eb2 = check(true, &mut w, &s, EElement::new("B".into()), Some(eb));
+        let _ec = check(false, &mut w, &s, EElement::new("C".into()), Some(eb2));
     }
 
-    // #[test]
-    // fn match_id() {
-    //     let s = Selectors::compile("#id").unwrap();
+    #[test]
+    fn match_id() {
+        let s = Selectors::compile("#id").unwrap();
+        let mut w = world();
 
-    //     let e = EElement::new("B".into()).with_id("asd".into());
-    //     assert_eq!(false, s.matches(&EntityElement::new(&e)));
-    //     let e = EElement::new("A".into()).with_id("id".into());
-    //     assert_eq!(true, s.matches(&EntityElement::new(&e)));
-    // }
+        check(false, &mut w, &s, EElement::new("B".into()).with_id("asd".into()), None);
+        check(true, &mut w, &s, EElement::new("A".into()).with_id("id".into()), None);
+    }
 
-    // #[test]
-    // fn match_class() {
-    //     let s = Selectors::compile(".a").unwrap();
+    #[test]
+    fn match_class() {
+        let s = Selectors::compile(".a").unwrap();
+        let mut w = world();
 
-    //     let e = EElement::new("X".into()).add_class("b".into());
-    //     assert_eq!(false, s.matches(&EntityElement::new(&e)));
-    //     let e = EElement::new("X".into()).add_class("a".into());
-    //     assert_eq!(true, s.matches(&EntityElement::new(&e)));
-    // }
+        check(false, &mut w, &s, EElement::new("X".into()).add_class("b".into()), None);
+        check(true, &mut w, &s, EElement::new("X".into()).add_class("a".into()), None);
+    }
 }
