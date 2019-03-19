@@ -324,7 +324,6 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
 
         let renderer = rendering::Renderer::new(factory, backend, window_targets);
 
-        use manager::*;
         println!("current path {:?}", std::env::current_dir());
         let store: manager::ResourceManager = manager::ResourceManager::new();
 
@@ -341,7 +340,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
         self.dispatcher.dispatch(&mut self.world.res);
 
         {
-            let mut store = self.world.write_resource::<manager::ResourceManager>();
+            let store = self.world.write_resource::<manager::ResourceManager>();
             store.sync();
         }
 

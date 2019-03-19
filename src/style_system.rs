@@ -453,14 +453,12 @@ impl<'a> System<'a> for StyleSystem {
             e => { eprintln!("{:?}", e); return},
         };
 
-        let mut matching_entities: Vec<Entity> = Vec::new();
-        matching_entities.extend((&entities, &ee).join().map(|x| x.0));
-        for e in matching_entities.iter() {
+        for (e, _) in (&entities, &ee).join() {
             for rule in stylesheet.borrow().0.iter() {
-                if rule.selectors.matches(&EntityElement((&ee, &parent), *e)) {
+                if rule.selectors.matches(&EntityElement((&ee, &parent), e)) {
                     for declaration in rule.declarations.iter(){
                         match declaration.property.as_ref() {
-                            "background" => { bg.get_mut(*e).unwrap().color = declaration.value.color().unwrap().into() },
+                            "background" => { bg.get_mut(e).unwrap().color = declaration.value.color().unwrap().into() },
                             _ => unimplemented!(),
                         }
                     }

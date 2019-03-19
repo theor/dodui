@@ -194,8 +194,7 @@ impl<R: gfx::Resources, F: Clone + gfx::Factory<R>> Renderer<R, F> {
         use crate::manager::*;
         use gfx::traits::FactoryExt;
 
-        let mut store = res.fetch_mut::<crate::manager::ResourceManager>();
-
+        let store = res.fetch_mut::<crate::manager::ResourceManager>();
 
         let dep = SimpleKey::Logical(("shader/cube.hlsl").into());
         match store.get::<ShaderSet>(&dep) {
