@@ -435,6 +435,7 @@ pub struct StyleSystem;
 impl<'a> System<'a> for StyleSystem {
     type SystemData = (
         Entities<'a>,
+        ReadExpect<'a, crate::manager::ResourceManager>,
         ReadStorage<'a, Pseudo>,
         ReadStorage<'a, crate::transform::Parent>,
         ReadStorage<'a, EElement>,
@@ -443,28 +444,19 @@ impl<'a> System<'a> for StyleSystem {
     );
 
     #[allow(dead_code)]
-    fn run(&mut self, (entities, pseudo, parent, ee, mut bg, mut mat): Self::SystemData) {
+    fn run(&mut self, (entities, res, pseudo, parent, ee, mut bg, mut mat): Self::SystemData) {
+        use crate::manager::*;
 
-        // use crate::manager::*;
-        // let mut ctx = Ctx::new();
-
-        // let dep = SimpleKey::Physical(("style/style.css").into());
-        // match store.get::<ShaderSet>(&dep, &mut ctx) {
-        //     Ok(css) => {},
-        //     _ => {},
-        // }
-
-        let stylesheet = crate::styling::parse("* { background: #ff0000ff; } Label { background: #ffff00ff; } ");
-        
-
-        //  let selectors = Selectors::compile(":hover").unwrap();
-        //  let mut top = TopLevelRuleParser {};
-        //  let stylesheet = cssparser::RuleListParser::new_for_stylesheet(&mut top, parser: P).expect("Wasn't a valid stylesheet");
+        let key = SimpleKey::Path(("style/style.css").into());
+        let stylesheet = match res.get::<crate::styling::Stylesheet>(&key) {
+            Ok(css) => css,
+            e => { eprintln!("{:?}", e); return},
+        };
 
         let mut matching_entities: Vec<Entity> = Vec::new();
         matching_entities.extend((&entities, &ee).join().map(|x| x.0));
         for e in matching_entities.iter() {
-            for rule in stylesheet.iter() {
+            for rule in stylesheet.borrow().0.iter() {
                 if rule.selectors.matches(&EntityElement((&ee, &parent), *e)) {
                     for declaration in rule.declarations.iter(){
                         match declaration.property.as_ref() {
@@ -476,8 +468,6 @@ impl<'a> System<'a> for StyleSystem {
             }
         }
 
-        //  selectors.matches(element: &EntityElement)
-        //  println!("{:?}", selectors);
         for (bg, mut mat) in (&bg, &mut mat).join() {
             mat.color = bg.color;
         }

@@ -33,7 +33,7 @@ impl Theme {
     pub fn parse(s: &str) -> Self {
         Theme {
             parent: None,
-            rules: parse(s),
+            rules: parse(s).0,
         }
     }
 
@@ -574,7 +574,40 @@ fn parse_basic_color<'i, 't>(
     })
 }
 
-pub fn parse(s: &str) -> Vec<Rule> {
+use crate::manager::*;
+
+#[derive(Debug)]
+pub struct Stylesheet(pub Vec<Rule>);
+
+impl Load<Ctx, SimpleKey> for Stylesheet {
+  type Error = Error;
+
+  fn load(
+    key: SimpleKey,
+    _storage: &mut Storage<Ctx, SimpleKey>,
+    _ctx: &mut Ctx,
+  ) -> Result<Loaded<Self, SimpleKey>, Error> {
+        match key {
+      SimpleKey::Path(path) => {
+        println!("Load Stylesheet {}", path.display());
+        let mut fh = File::open(path).map_err(Error::IOError)?;
+        let mut buf = String::new();
+        fh.read_to_string(&mut buf).map_err(Error::IOError)?;
+
+        let stylesheet = parse(&buf);
+        // storage.get::<ShaderSet>(&dep, ctx).unwrap();
+        Ok(Loaded::without_dep(
+          stylesheet
+          .into()
+        ))
+      }
+
+      SimpleKey::Logical(_) => Err(Error::CannotLoadFromLogical),
+    }
+  }
+}
+
+pub fn parse(s: &str) -> Stylesheet {
     let mut input = ParserInput::new(s);
     let mut parser = Parser::new(&mut input);
     let rule_parser = RuleParser::new();
@@ -595,11 +628,11 @@ pub fn parse(s: &str) -> Vec<Rule> {
         }
     }
 
-    rules.into_iter().filter_map(|rule| rule.ok()).collect()
+    Stylesheet(rules.into_iter().filter_map(|rule| rule.ok()).collect())
 }
 
 const fn hex(data: u32) -> Color {
     Color {
-        data: 0xFF_000_000 | data,
+        data: 0xFF | (data << 8),
     }
 }
