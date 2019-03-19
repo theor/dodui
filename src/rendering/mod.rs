@@ -190,14 +190,15 @@ impl<R: gfx::Resources, F: Clone + gfx::Factory<R>> Renderer<R, F> {
         res: &specs::Resources,
         // factory: &mut F,
         encoder: &mut gfx::Encoder<R, C>,
-        store: &mut crate::manager::ResourceManager,
     ) {
         use crate::manager::*;
         use gfx::traits::FactoryExt;
-        let mut ctx = Ctx::new();
+
+        let mut store = res.fetch_mut::<crate::manager::ResourceManager>();
+
 
         let dep = SimpleKey::Logical(("shader/cube.hlsl").into());
-        match store.get::<ShaderSet>(&dep, &mut ctx) {
+        match store.get::<ShaderSet>(&dep) {
             Ok(set) => {
                 let set = set.borrow_mut();
                 if set.version != self.version {
@@ -215,7 +216,7 @@ impl<R: gfx::Resources, F: Clone + gfx::Factory<R>> Renderer<R, F> {
         
         let dep = SimpleKey::Logical(("shader/text.hlsl").into());
 
-        match store.get::<ShaderSet>(&dep, &mut ctx) {
+        match store.get::<ShaderSet>(&dep) {
             Ok(set) => {
                 let set = set.borrow_mut();
                 if set.version != self.text_version {

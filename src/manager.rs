@@ -286,4 +286,43 @@ impl Load<Ctx, SimpleKey> for ShaderSet {
   }
 }
 
-pub type ResourceManager = Store<Ctx, SimpleKey>;
+use std::sync::Mutex;
+use std::cell::Cell;
+struct StoreImpl(pub Store<Ctx, SimpleKey>);
+pub struct ResourceManager(Mutex<Cell<StoreImpl>>);
+
+impl ResourceManager {
+  pub fn new() -> Self {
+    ResourceManager(
+      Mutex::new(
+        Cell::new(
+          StoreImpl(
+          Store::new(StoreOpt::default()).expect("store creation")))))
+  }
+
+  pub fn get<T>(&self, k: &SimpleKey) -> Result<warmy::Res<T>, warmy::StoreErrorOr<T, Ctx, SimpleKey>>
+  where T: Load<Ctx, SimpleKey, ()>, {
+    let mut ctx = Ctx::new();
+
+    self.0.lock().unwrap().get_mut().0.get(k, &mut ctx)
+  }
+
+  pub fn sync(&self) {
+    let mut ctx = Ctx::new();
+
+    self.0.lock().unwrap().get_mut().0.sync(&mut ctx)
+  }
+}
+// impl  std::ops::Deref for ResourceManager {
+//   type Target = Store<Ctx, SimpleKey>;
+//   fn deref(&self) -> &<Self as std::ops::Deref>::Target {
+//     &self.0
+//   }
+// }
+// impl  std::ops::DerefMut for ResourceManager {
+//   fn deref_mut(&mut self) -> &mut <Self as std::ops::Deref>::Target {
+//         &mut self.0
+//     }
+// }
+
+unsafe impl Send for StoreImpl {}

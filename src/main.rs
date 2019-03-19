@@ -202,7 +202,7 @@ struct App<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> {
     renderer: rendering::Renderer<R, F>,
     world: World,
     dispatcher: Dispatcher<'a, 'b>,
-    store: manager::ResourceManager,
+    // store: manager::ResourceManager,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -326,22 +326,26 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
 
         use manager::*;
         println!("current path {:?}", std::env::current_dir());
-        let store: manager::ResourceManager =
-            Store::new(StoreOpt::default()).expect("store creation");
+        let store: manager::ResourceManager = manager::ResourceManager::new();
 
+        world.add_resource(store);
         App {
             world,
             dispatcher,
             renderer,
-            store: store,
+            // store: store,
         }
     }
 
     fn render<C2: gfx::CommandBuffer<R>>(&mut self, encoder: &mut gfx::Encoder<R, C2>) {
-        self.renderer
-            .render(&self.world.res, encoder, &mut self.store);
         self.dispatcher.dispatch(&mut self.world.res);
-        self.store.sync(&mut manager::Ctx::new());
+
+        {
+            let mut store = self.world.write_resource::<manager::ResourceManager>();
+            store.sync();
+        }
+
+        self.renderer.render(&self.world.res, encoder);
 
         {
             let mut m = self.world.write_resource::<MouseEvent>();
