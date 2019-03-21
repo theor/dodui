@@ -87,14 +87,16 @@ pub enum Error {
   CannotLoadFromFS,
   CannotLoadFromLogical,
   IOError(io::Error),
+  FontError(gfx_text::FontError),
 }
 
 impl fmt::Display for Error {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-    match *self {
+    match self {
       Error::CannotLoadFromFS => f.write_str("cannot load from file system"),
       Error::CannotLoadFromLogical => f.write_str("cannot load from logical"),
       Error::IOError(ref e) => write!(f, "IO error: {}", e),
+      ref e => f.write_fmt(format_args!("{}", e)),
     }
   }
 }

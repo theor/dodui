@@ -55,7 +55,7 @@ mod rendering;
 mod transform;
 use transform::*;
 
-mod layout_system;
+mod layout;
 mod color;
 mod style_system;
 mod styling;
@@ -266,7 +266,8 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
             .with(PickSystem, "sys_pick", &["transform_system"])
             .with(ConsumeEventsSystem, "sys_consume", &["sys_pick"])
             .with(StyleSystem::new(), "sys_style", &["sys_consume"])
-            .with(layout_system::LayoutSystem, "sys_layout", &["sys_style"])
+            .with(layout::LayoutSystem, "sys_layout", &["sys_style"])
+            // .with(layout::MeasureSystem::new(), "sys_measure", &["sys_layout"])
             .with(CleanEventsSystem, "sys_clean_events", &["sys_layout"])
             .build();
         dispatcher.setup(&mut world.res);

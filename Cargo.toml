@@ -9,14 +9,15 @@ specs = "0.14.3"
 specs-hierarchy = "0.3.0"
 hibitset = "*"
 warmy = "0.11.1"
-gfx_text = { git = "https://github.com/theor/gfx_text.git" }
-# gfx_text = { path = "gfx_text" }
+# gfx_text = { git = "https://github.com/theor/gfx_text.git" }
+gfx_text = { path = "gfx_text" }
 stretch = "0.1.12"
 selectors = "0.21.0"
 cssparser = "*"
 matches = "*"
 string-interner = "0.7.0"
 lazy_static = "1.3.0"
+hashbrown = "0.1.8"
 
 [dependencies.env_logger]
 version = "0.5"

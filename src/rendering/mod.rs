@@ -4,7 +4,7 @@ pub use material::*;
 use crate::gfx_app;
 use crate::gfx_app::{ColorFormat, DepthFormat};
 use crate::shade;
-use cgmath::{Matrix4, Point3, Vector3};
+use cgmath::{Matrix4, Point3, Point2, Vector3};
 use gfx;
 use gfx::texture;
 
