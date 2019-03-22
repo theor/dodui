@@ -4,6 +4,7 @@
 
 // use cgmath::Point2;
 // use hashbrown::HashMap;
+use stretch::geometry::Size;
 
 use crate::manager::*;
 
@@ -11,7 +12,7 @@ use crate::manager::*;
 pub struct BitmapFont(pub gfx_text::BitmapFont);
 
 impl BitmapFont {
-    pub fn measure(&self, text: &str) -> (i32, i32) {
+    pub fn measure(&self, text: &str) -> Size<f32> {
         let mut width = 0;
         let mut last_char = None;
 
@@ -30,7 +31,7 @@ impl BitmapFont {
             None => (),
         }
 
-        (width, self.0.get_font_height() as i32)
+        Size { width: width as f32, height: self.0.get_font_height() as f32 }
     }
 }
 

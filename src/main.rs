@@ -140,6 +140,7 @@ struct PickSystem;
 impl<'a> System<'a> for PickSystem {
     type SystemData = (
         Entities<'a>,
+        ReadStorage<'a, EElement>,
         ReadStorage<'a, GlobalTransform>,
         ReadStorage<'a, Transform>,
         WriteStorage<'a, Pseudo>,
@@ -152,11 +153,16 @@ impl<'a> System<'a> for PickSystem {
     #[allow(dead_code)]
     fn run(
         &mut self,
-        (entities, pos, tr, mut pseudo, mut event, mouse, events, _screen): Self::SystemData,
+        (entities, eelements, pos, tr, mut pseudo, mut event, mouse, events, _screen): Self::SystemData,
     ) {
         use cgmath::Transform;
         let p: cgmath::Point3<f32> =
             cgmath::Point3::new(mouse.position.0 as f32, mouse.position.1 as f32, 0.0);
+
+        let missing_pseudos : specs::BitSet = (&entities, &eelements, !&pseudo).join().map(|(e,_,_)| e.id()).collect();
+        for(id) in (&missing_pseudos).join() {
+            pseudo.insert(entities.entity(id), Pseudo { hover: false });
+        }
 
         for (e, pos, _tr, mut pseudo) in (&entities, &pos, &tr, &mut pseudo).join() {
             let p2 = pos.0.transform_point(cgmath::Point3::new(0.0, 0.0, 0.0));

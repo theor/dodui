@@ -58,7 +58,7 @@ impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Clone + gfx::Factory<R>
                     mat.color.z as f32 / 255.0,
                     mat.color.w as f32 / 255.0,
                 ],
-                size: tr.size.into(),
+                size: [(pos.1).0,(pos.1).1],
             };
             self.encoder
                 .update_constant_buffer(&self.data.locals, &locals);
