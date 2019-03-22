@@ -12,15 +12,15 @@ pub struct Material {
 impl Default for Material {
     fn default() -> Self {
         Material {
-            color: Vector4::new(255, 255, 255, 255)
+            color: Vector4::new(255, 255, 255, 255),
         }
     }
 }
 
 impl Material {
-    pub fn from_color(r:u8, g:u8, b:u8, a:u8) -> Self {        
+    pub fn from_color(r: u8, g: u8, b: u8, a: u8) -> Self {
         Self {
-            color: Vector4::new(r,g,b,a)
+            color: Vector4::new(r, g, b, a),
         }
     }
 }

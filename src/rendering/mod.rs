@@ -4,7 +4,7 @@ pub use material::*;
 use crate::gfx_app;
 use crate::gfx_app::{ColorFormat, DepthFormat};
 use crate::shade;
-use cgmath::{Matrix4, Point3, Point2, Vector3};
+use cgmath::{Matrix4, Point2, Point3, Vector3};
 use gfx;
 use gfx::texture;
 
@@ -67,15 +67,17 @@ impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Clone + gfx::Factory<R>
             if let Some(text_renderer) = self.text {
                 if let Some(text) = text {
                     use cgmath::Transform;
-                    let p = m.transform_point(cgmath::Point3::new(0.0,0.0,0.0));
+                    let p = m.transform_point(cgmath::Point3::new(0.0, 0.0, 0.0));
                     text_renderer.add(
-                        &text.text, // Text to add
-                        [p.x as i32, p.y as i32],                                      // Position
-                        [0.9, 0.9, 0.9, 1.0],                       // Text color
+                        &text.text,               // Text to add
+                        [p.x as i32, p.y as i32], // Position
+                        [0.9, 0.9, 0.9, 1.0],     // Text color
                     );
                     if let Err(e) = text_renderer.draw(self.encoder, &self.data.out_color) {
                         match e {
-                            gfx_text::Error::PipelineError(p) => { println!("{}", p); },
+                            gfx_text::Error::PipelineError(p) => {
+                                println!("{}", p);
+                            }
                             _ => println!("{:?}", e),
                         }
                     }
@@ -212,7 +214,7 @@ impl<R: gfx::Resources, F: Clone + gfx::Factory<R>> Renderer<R, F> {
                 println!("Error {:?}", e);
             }
         }
-        
+
         let dep = SimpleKey::Logical(("shader/text.hlsl").into());
 
         match store.get::<ShaderSet>(&dep) {

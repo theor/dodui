@@ -1,4 +1,3 @@
-
 use specs::prelude::*;
 
 use cgmath::{Matrix4, Point2};
@@ -17,8 +16,11 @@ impl Transform {
         }
     }
 
-    pub fn with_size(self, w:f32, h:f32) -> Self {
-        Self { size: (w,h).into(), ..self }
+    pub fn with_size(self, w: f32, h: f32) -> Self {
+        Self {
+            size: (w, h).into(),
+            ..self
+        }
     }
 
     pub fn matrix(&self) -> Matrix4<f32> {

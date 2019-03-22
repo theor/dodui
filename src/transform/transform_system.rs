@@ -1,11 +1,10 @@
-
+use hibitset::BitSet;
 use specs::prelude::*;
 use specs_hierarchy::HierarchyEvent;
-use hibitset::BitSet;
 
 use crate::transform::global_transform::GlobalTransform;
-use crate::transform::transform::Transform;
 use crate::transform::parent::{Parent, ParentHierarchy};
+use crate::transform::transform::Transform;
 
 #[derive(Debug)]
 pub struct Vel(pub f32);

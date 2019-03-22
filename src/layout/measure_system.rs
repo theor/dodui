@@ -1,4 +1,3 @@
-
 // use crate::transform::{GlobalTransform, Transform};
 // use specs::prelude::*;
 // use crate::rendering::Text;
@@ -36,31 +35,29 @@ impl BitmapFont {
 }
 
 impl Load<Ctx, SimpleKey> for BitmapFont {
-  type Error = Error;
+    type Error = Error;
 
-  fn load(
-    key: SimpleKey,
-    _storage: &mut warmy::Storage<Ctx, SimpleKey>,
-    _ctx: &mut Ctx,
-  ) -> Result<Loaded<Self, SimpleKey>, Error> {
+    fn load(
+        key: SimpleKey,
+        _storage: &mut warmy::Storage<Ctx, SimpleKey>,
+        _ctx: &mut Ctx,
+    ) -> Result<Loaded<Self, SimpleKey>, Error> {
         match key {
-      SimpleKey::Path(path) => {
-        println!("Load BitmapFont {}", path.display());
-        let bitmap = gfx_text::BitmapFont::from_path(path.to_str().unwrap(), 16, None).map_err(Error::FontError)?;
-        // storage.get::<ShaderSet>(&dep, ctx).unwrap();
-        Ok(Loaded::without_dep(
-          BitmapFont(bitmap)
-          .into()
-        ))
-      }
+            SimpleKey::Path(path) => {
+                println!("Load BitmapFont {}", path.display());
+                let bitmap = gfx_text::BitmapFont::from_path(path.to_str().unwrap(), 16, None)
+                    .map_err(Error::FontError)?;
+                // storage.get::<ShaderSet>(&dep, ctx).unwrap();
+                Ok(Loaded::without_dep(BitmapFont(bitmap).into()))
+            }
 
-      SimpleKey::Logical(_) => Err(Error::CannotLoadFromLogical),
+            SimpleKey::Logical(_) => Err(Error::CannotLoadFromLogical),
+        }
     }
-  }
 }
 
 // pub struct MeasureSystem {
-    
+
 // }
 
 // impl MeasureSystem {
@@ -80,7 +77,7 @@ impl Load<Ctx, SimpleKey> for BitmapFont {
 //     );
 //     fn run(&mut self, (store, dim, mut tr, text): Self::SystemData) {
 //         let key = SimpleKey::Path(("style/NotoSans-Regular.ttf").into());
-        
+
 //         let font = store.get::<BitmapFont>(&key);
 //         let font = match font {
 //             Ok(ref font) => font,

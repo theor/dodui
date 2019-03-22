@@ -3,9 +3,7 @@
 
 use cssparser::CowRcStr;
 use cssparser::{
-    SourceLocation,
-    self, DeclarationListParser, ParseError, Parser, ParserInput,
-    Token,
+    self, DeclarationListParser, ParseError, Parser, ParserInput, SourceLocation, Token,
 };
 
 use crate::color::Color;
@@ -14,10 +12,10 @@ use std::ops::Add;
 use std::path::Path;
 use std::sync::Arc;
 
+use crate::style_system::{KuchikiParser, Selector, Selectors};
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Read;
-use crate::style_system::{Selector, Selectors, KuchikiParser};
 
 #[derive(Debug, Default, Clone)]
 pub struct Theme {
@@ -340,7 +338,7 @@ impl<'i> cssparser::QualifiedRuleParser<'i> for RuleParser {
                     //     ParseError::Basic(ref e) => ,
                     //     ParseError::Custom(ref e) => eprintln!("{:?}", e),
                     // }
-                    println!("Error occured in `{}`", e.1);// input.slice(e.span.clone()));
+                    println!("Error occured in `{}`", e.1); // input.slice(e.span.clone()));
                 }
             }
         }
@@ -355,7 +353,7 @@ impl<'i> cssparser::QualifiedRuleParser<'i> for RuleParser {
 }
 
 impl<'i> cssparser::AtRuleParser<'i> for RuleParser {
-       /// The intermediate representation of prelude of an at-rule without block;
+    /// The intermediate representation of prelude of an at-rule without block;
     type PreludeNoBlock = ();
 
     /// The intermediate representation of prelude of an at-rule with block;
@@ -401,19 +399,31 @@ impl<'i> cssparser::DeclarationParser<'i> for DeclarationParser {
                         has_sign,
                         ..
                     } if !has_sign && x >= 0 => Value::UInt(x as u32),
-                    t => return Err(input.current_source_location().new_basic_unexpected_token_error(t.clone()).into()),
+                    t => {
+                        return Err(input
+                            .current_source_location()
+                            .new_basic_unexpected_token_error(t.clone())
+                            .into());
+                    }
                 }
             }
 
             "opacity" => match input.next()?.clone() {
-                Token::Number {
-                    value: x,
-                    ..
-                } => Value::Float(x as f32),
-                t => return Err(input.current_source_location().new_basic_unexpected_token_error(t.clone()).into()),
+                Token::Number { value: x, .. } => Value::Float(x as f32),
+                t => {
+                    return Err(input
+                        .current_source_location()
+                        .new_basic_unexpected_token_error(t.clone())
+                        .into());
+                }
             },
 
-            _ => return Err(input.current_source_location().new_basic_unexpected_token_error(input.next()?.clone()).into()),
+            _ => {
+                return Err(input
+                    .current_source_location()
+                    .new_basic_unexpected_token_error(input.next()?.clone())
+                    .into());
+            }
         };
 
         Ok(Declaration {
@@ -469,7 +479,9 @@ fn parse_string<'i, 't>(
         },
 
         t => {
-            let basic_error = input.current_source_location().new_basic_unexpected_token_error(t.clone());
+            let basic_error = input
+                .current_source_location()
+                .new_basic_unexpected_token_error(t.clone());
             return Err(basic_error.into());
         }
     })
@@ -503,7 +515,9 @@ fn parse_basic_color<'i, 't>(
         },
 
         t => {
-            let basic_error = input.current_source_location().new_basic_unexpected_token_error(t.clone());
+            let basic_error = input
+                .current_source_location()
+                .new_basic_unexpected_token_error(t.clone());
             return Err(basic_error.into());
         }
     })
@@ -515,31 +529,28 @@ use crate::manager::*;
 pub struct Stylesheet(pub Vec<Rule>);
 
 impl Load<Ctx, SimpleKey> for Stylesheet {
-  type Error = Error;
+    type Error = Error;
 
-  fn load(
-    key: SimpleKey,
-    _storage: &mut Storage<Ctx, SimpleKey>,
-    _ctx: &mut Ctx,
-  ) -> Result<Loaded<Self, SimpleKey>, Error> {
+    fn load(
+        key: SimpleKey,
+        _storage: &mut Storage<Ctx, SimpleKey>,
+        _ctx: &mut Ctx,
+    ) -> Result<Loaded<Self, SimpleKey>, Error> {
         match key {
-      SimpleKey::Path(path) => {
-        println!("Load Stylesheet {}", path.display());
-        let mut fh = File::open(path).map_err(Error::IOError)?;
-        let mut buf = String::new();
-        fh.read_to_string(&mut buf).map_err(Error::IOError)?;
+            SimpleKey::Path(path) => {
+                println!("Load Stylesheet {}", path.display());
+                let mut fh = File::open(path).map_err(Error::IOError)?;
+                let mut buf = String::new();
+                fh.read_to_string(&mut buf).map_err(Error::IOError)?;
 
-        let stylesheet = parse(&buf);
-        // storage.get::<ShaderSet>(&dep, ctx).unwrap();
-        Ok(Loaded::without_dep(
-          stylesheet
-          .into()
-        ))
-      }
+                let stylesheet = parse(&buf);
+                // storage.get::<ShaderSet>(&dep, ctx).unwrap();
+                Ok(Loaded::without_dep(stylesheet.into()))
+            }
 
-      SimpleKey::Logical(_) => Err(Error::CannotLoadFromLogical),
+            SimpleKey::Logical(_) => Err(Error::CannotLoadFromLogical),
+        }
     }
-  }
 }
 
 pub fn parse(s: &str) -> Stylesheet {

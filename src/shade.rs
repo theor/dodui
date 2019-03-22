@@ -15,9 +15,9 @@
 use std::error::Error;
 use std::fmt;
 
-pub use gfx_device_gl::Version as GlslVersion;
 #[cfg(target_os = "windows")]
 pub use gfx_device_dx11::ShaderModel as DxShaderModel;
+pub use gfx_device_gl::Version as GlslVersion;
 #[cfg(feature = "metal")]
 pub use gfx_device_metal::ShaderModel as MetalShaderModel;
 /// Shader backend with version numbers.
@@ -64,7 +64,11 @@ pub struct SelectError(Backend);
 
 impl fmt::Display for SelectError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "An error occurred when selecting the {:?} backend", self.0)
+        write!(
+            f,
+            "An error occurred when selecting the {:?} backend",
+            self.0
+        )
     }
 }
 
@@ -74,7 +78,8 @@ impl Error for SelectError {
     }
 }
 
-#[allow(dead_code)] impl<'a> Source<'a> {
+#[allow(dead_code)]
+impl<'a> Source<'a> {
     /// Create an empty shader source. Useful for specifying the remaining
     /// structure members upon construction.
     pub fn empty() -> Source<'a> {
@@ -123,30 +128,24 @@ impl Error for SelectError {
                 }
             }
             #[cfg(target_os = "windows")]
-            Backend::Hlsl(model) => {
-                match *self {
-                    Source { hlsl_50: s, .. } if s != EMPTY && model >= 50 => s,
-                    Source { hlsl_41: s, .. } if s != EMPTY && model >= 41 => s,
-                    Source { hlsl_40: s, .. } if s != EMPTY && model >= 40 => s,
-                    Source { hlsl_30: s, .. } if s != EMPTY && model >= 30 => s,
-                    _ => return Err(SelectError(backend)),
-                }
-            }
+            Backend::Hlsl(model) => match *self {
+                Source { hlsl_50: s, .. } if s != EMPTY && model >= 50 => s,
+                Source { hlsl_41: s, .. } if s != EMPTY && model >= 41 => s,
+                Source { hlsl_40: s, .. } if s != EMPTY && model >= 40 => s,
+                Source { hlsl_30: s, .. } if s != EMPTY && model >= 30 => s,
+                _ => return Err(SelectError(backend)),
+            },
             #[cfg(feature = "metal")]
-            Backend::Msl(revision) => {
-                match *self {
-                    Source { msl_11: s, .. } if s != EMPTY && revision >= 11 => s,
-                    Source { msl_10: s, .. } if s != EMPTY && revision >= 10 => s,
-                    _ => return Err(SelectError(backend)),
-                }
-            }
+            Backend::Msl(revision) => match *self {
+                Source { msl_11: s, .. } if s != EMPTY && revision >= 11 => s,
+                Source { msl_10: s, .. } if s != EMPTY && revision >= 10 => s,
+                _ => return Err(SelectError(backend)),
+            },
             #[cfg(feature = "vulkan")]
-            Backend::Vulkan => {
-                match *self {
-                    Source { vulkan: s, .. } if s != EMPTY => s,
-                    _ => return Err(SelectError(backend)),
-                }
-            }
+            Backend::Vulkan => match *self {
+                Source { vulkan: s, .. } if s != EMPTY => s,
+                _ => return Err(SelectError(backend)),
+            },
         })
     }
 }
