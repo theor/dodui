@@ -151,7 +151,7 @@ impl<'a> System<'a> for LayoutSystem {
         for (entity, _, _) in (&*entities, &eelements, !&parents).join() {
             let n = &layout.children[i];
             Self::apply(&hierarchy, entity, &mut globals, n);
-            i = i + 1;
+            i += 1;
         }
 
         // println!("computed {:#?}", layout);
@@ -164,19 +164,14 @@ impl LayoutSystem {
         mut globals: &mut WriteStorage<'_, GlobalTransform>,
         node: &LayoutNode,
     ) {
-        let mut i = 0;
-
-        {
-            let t: &mut GlobalTransform = globals.get_mut(e).unwrap();
-            t.0 = cgmath::Matrix4::from_translation(
-                [node.location.x, node.location.y, 0.0f32].into(),
-            );
-            t.1 = (node.size.width, node.size.height);
-            // println!("Layout {:?}: {:?}", e, t);
-        }
-        for c in hierarchy.children(e) {
-            Self::apply(&hierarchy, c.clone(), &mut globals, &node.children[i]);
-            i += 1;
+        let t: &mut GlobalTransform = globals.get_mut(e).unwrap();
+        t.0 = cgmath::Matrix4::from_translation(
+            [node.location.x, node.location.y, 0.0f32].into(),
+        );
+        t.1 = (node.size.width, node.size.height);
+        // println!("Layout {:?}: {:?}", e, t);
+        for (i, c) in hierarchy.children(e).iter().enumerate() {
+            Self::apply(&hierarchy, *c, &mut globals, &node.children[i]);
         }
     }
 
@@ -188,7 +183,7 @@ impl LayoutSystem {
         store: &ReadExpect<crate::manager::ResourceManager>,
     ) -> Node {
         let mut n: Node = Default::default();
-        if let Some(dimensions) = dimensions.get(e.clone()) {
+        if let Some(dimensions) = dimensions.get(e) {
             dimensions.fill_node(&mut n);
         }
 
@@ -196,8 +191,8 @@ impl LayoutSystem {
             let key = SimpleKey::Path(("style/NotoSans-Regular.ttf").into());
             let font = store.get::<crate::layout::BitmapFont>(&key).unwrap();
             let measured = font.borrow().measure(&text.text);
-            let e = e.clone();
-            n.measure = Some(Box::new(move |s| {
+            // let e = e.clone();
+            n.measure = Some(Box::new(move |_s| {
                 // println!("measure input {:?} {:?}", e, s);
                 Ok(measured)
             }));
@@ -205,7 +200,7 @@ impl LayoutSystem {
 
         for c in hierarchy.children(e) {
             n.children
-                .push(Self::make(hierarchy, c.clone(), dimensions, text, store));
+                .push(Self::make(hierarchy, *c, dimensions, text, store));
         }
 
         n

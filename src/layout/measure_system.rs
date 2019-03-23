@@ -26,14 +26,13 @@ impl BitmapFont {
             width += ch_info.x_advance;
         }
 
-        match last_char {
-            Some(info) => width += info.x_offset + info.width - info.x_advance,
-            None => (),
+        if let Some(info) = last_char {
+            width += info.x_offset + info.width - info.x_advance;
         }
 
         Size {
             width: width as f32,
-            height: self.0.get_font_height() as f32,
+            height: f32::from(self.0.get_font_height()),
         }
     }
 }
@@ -52,7 +51,7 @@ impl Load<Ctx, SimpleKey> for BitmapFont {
                 let bitmap = gfx_text::BitmapFont::from_path(path.to_str().unwrap(), 16, None)
                     .map_err(Error::FontError)?;
                 // storage.get::<ShaderSet>(&dep, ctx).unwrap();
-                Ok(Loaded::without_dep(BitmapFont(bitmap).into()))
+                Ok(Loaded::without_dep(BitmapFont(bitmap)))
             }
 
             SimpleKey::Logical(_) => Err(Error::CannotLoadFromLogical),

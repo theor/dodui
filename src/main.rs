@@ -108,8 +108,8 @@ impl Events {
     }
     pub fn invoke(&self, e: Entity) {
         if let Some(cb) = self.map.lock().unwrap().get(&e) {
-            let cb2 = cb.clone();
-            cb2(e.clone());
+            let cb2 = cb;
+            cb2(e);
         }
     }
 }
@@ -189,7 +189,7 @@ impl<'a> System<'a> for PickSystem {
             if hit {
                 pseudo.hover = true;
                 if mouse.left_click == ButtonState::Pressed {
-                    events.invoke(e.clone());
+                    events.invoke(e);
                     entities
                         .build_entity()
                         .with(
@@ -370,7 +370,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
     }
 
     fn render<C2: gfx::CommandBuffer<R>>(&mut self, encoder: &mut gfx::Encoder<R, C2>) {
-        self.dispatcher.dispatch(&mut self.world.res);
+        self.dispatcher.dispatch(&self.world.res);
 
         {
             let store = self.world.write_resource::<manager::ResourceManager>();

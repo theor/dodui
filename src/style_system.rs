@@ -21,7 +21,7 @@ use crate::transform::Parent;
 pub struct Sym(string_interner::Sym);
 
 impl Sym {
-    pub fn resolve<'a>(&'a self) -> Option<String> {
+    pub fn resolve(&self) -> Option<String> { 
         let si: &string_interner::DefaultStringInterner = &STRING_INTERNER.lock().unwrap();
         si.resolve(self.0).map(|x| x.to_owned())
     }
@@ -461,10 +461,10 @@ impl std::fmt::Display for Selectors {
         let first = iter
             .next()
             .expect("Empty Selectors, should contain at least one selector");
-        let _ = (first.0.to_css(f))?;
+        first.0.to_css(f)?;
         for selector in iter {
-            let _ = (f.write_str(", "))?;
-            let _ = (selector.0.to_css(f))?;
+            f.write_str(", ")?;
+            selector.0.to_css(f)?;
         }
         Ok(())
     }

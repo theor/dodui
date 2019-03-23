@@ -14,7 +14,7 @@ impl Color {
     /// Create a new color from RGB
     pub const fn rgb(r: u8, g: u8, b: u8) -> Self {
         Color {
-            data: 0xFF000000 | ((r as u32) << 16) | ((g as u32) << 8) | (b as u32),
+            data: 0xFF00_0000 | ((r as u32) << 16) | ((g as u32) << 8) | (b as u32),
         }
     }
 
@@ -27,22 +27,22 @@ impl Color {
 
     /// Get the r value
     pub fn r(&self) -> u8 {
-        ((self.data & 0xFF000000) >> 24) as u8
+        ((self.data & 0xFF00_0000) >> 24) as u8
     }
 
     /// Get the g value
     pub fn g(&self) -> u8 {
-        ((self.data & 0x00FF0000) >> 16) as u8
+        ((self.data & 0x00FF_0000) >> 16) as u8
     }
 
     /// Get the b value
     pub fn b(&self) -> u8 {
-        ((self.data & 0x0000FF00) >> 8) as u8
+        ((self.data & 0x0000_FF00) >> 8) as u8
     }
 
     /// Get the alpha value
     pub fn a(&self) -> u8 {
-        (self.data & 0x000000FF) as u8
+        (self.data & 0x0000_00FF) as u8
     }
 
     /// Interpolate between two colors

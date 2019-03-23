@@ -696,7 +696,7 @@ fn parse_basic_color<'i, 't>(
                 };
 
                 if hash.len() == 6 {
-                    x |= 0xFF_000_000;
+                    x = (x << 8) | 0xFF;
                 }
 
                 Color { data: x }
@@ -767,7 +767,7 @@ impl Load<Ctx, SimpleKey> for Stylesheet {
 
                 let stylesheet = parse(&buf);
                 // storage.get::<ShaderSet>(&dep, ctx).unwrap();
-                Ok(Loaded::without_dep(stylesheet.into()))
+                Ok(Loaded::without_dep(stylesheet))
             }
 
             SimpleKey::Logical(_) => Err(Error::CannotLoadFromLogical),
