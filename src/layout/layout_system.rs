@@ -144,6 +144,7 @@ impl<'a> System<'a> for LayoutSystem {
             root.children.push(branch);
         }
 
+        // println!("layout {:?}", root);
         let layout = stretch::compute(&root, Size::undefined()).unwrap();
 
         let mut i = 0;
@@ -153,7 +154,7 @@ impl<'a> System<'a> for LayoutSystem {
             i = i + 1;
         }
 
-        // println!("{:#?}", layout);
+        // println!("computed {:#?}", layout);
     }
 }
 impl LayoutSystem {
@@ -195,7 +196,11 @@ impl LayoutSystem {
             let key = SimpleKey::Path(("style/NotoSans-Regular.ttf").into());
             let font = store.get::<crate::layout::BitmapFont>(&key).unwrap();
             let measured = font.borrow().measure(&text.text);
-            n.measure = Some(Box::new(move |s| { /*println!("measure input {:?}", s);*/ Ok(measured) }));
+            let e = e.clone();
+            n.measure = Some(Box::new(move |s| { 
+                // println!("measure input {:?} {:?}", e, s);
+                Ok(measured)
+            }));
         }
 
         for c in hierarchy.children(e) {

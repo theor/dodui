@@ -522,7 +522,11 @@ impl<'a> System<'a> for StyleSystem {
         };
 
         for (e, _) in (&entities, &eelements).join() {
+            use cgmath::Zero;
+            bg.get_mut(e).unwrap().color = cgmath::Vector4::zero();
+
             *dimensions.get_mut(e).unwrap() = Default::default();
+
             for rule in stylesheet.borrow().0.iter() {
                 if rule
                     .selectors
@@ -549,18 +553,31 @@ impl<'a> System<'a> for StyleSystem {
 
                             "justify-content" => { if let Some(v) = declaration.value.justify_content() { dimensions.get_mut(e).unwrap().justify_content = v;} } //: JustifyContent,
 
-                            // "position" => { if let Some(v) = declaration.value.position() { dimensions.get_mut(e).unwrap().position = v; } /}/: Rect<Dimension>,
-                            // "margin" => { if let Some(v) = declaration.value.margin() { dimensions.get_mut(e).unwrap().margin = v; }   /}/: Rect<Dimension>,
-                            // "padding" => { if let Some(v) = declaration.value.padding() { dimensions.get_mut(e).unwrap().padding = v; }  /}/: Rect<Dimension>,
-                            // "border" => { if let Some(v) = declaration.value.border() { dimensions.get_mut(e).unwrap().border = v; }   /}/: Rect<Dimension>,
+                            // "position" => { if let Some(v) = declaration.value.position() { dimensions.get_mut(e).unwrap().position = v; } } //: Rect<Dimension>,
+
+                            // "margin" => { if let Some(v) = declaration.value.margin() { dimensions.get_mut(e).unwrap().margin = v; }   } //: Rect<Dimension>,
+                            "margin-left" => { if let Some(v) = declaration.value.dimension() { let x = dimensions.get_mut(e).unwrap(); x.margin = stretch::geometry::Rect {start: v, ..x.margin } }  } //: Rect<Dimension>,
+                            "margin-right" => { if let Some(v) = declaration.value.dimension() { dimensions.get_mut(e).unwrap().margin.end = v; }  } //: Rect<Dimension>,
+                            "margin-top" => { if let Some(v) = declaration.value.dimension() { dimensions.get_mut(e).unwrap().margin.top = v; }  } //: Rect<Dimension>,
+                            "margin-bottom" => { if let Some(v) = declaration.value.dimension() { dimensions.get_mut(e).unwrap().margin.bottom = v; }  } //: Rect<Dimension>,
+                            
+                     
+                            // "padding" => { if let Some(v) = declaration.value.float() { dimensions.get_mut(e).unwrap().padding = v; }  } //: Rect<Dimension>,
+                            "padding-left" => { if let Some(v) = declaration.value.dimension() { dimensions.get_mut(e).unwrap().padding.start = v; }  } //: Rect<Dimension>,
+                            "padding-right" => { if let Some(v) = declaration.value.dimension() { dimensions.get_mut(e).unwrap().padding.end = v; }  } //: Rect<Dimension>,
+                            "padding-top" => { if let Some(v) = declaration.value.dimension() { dimensions.get_mut(e).unwrap().padding.top = v; }  } //: Rect<Dimension>,
+                            "padding-bottom" => { if let Some(v) = declaration.value.dimension() { dimensions.get_mut(e).unwrap().padding.bottom = v; }  } //: Rect<Dimension>,
+                            
+                            // "border" => { if let Some(v) = declaration.value.border() { dimensions.get_mut(e).unwrap().border = v; }   } //: Rect<Dimension>,
 
                             "flex-grow" => { if let Some(v) = declaration.value.float() { dimensions.get_mut(e).unwrap().flex_grow = v; } }   //: f32,
                             "flex-shrink" => { if let Some(v) = declaration.value.float() { dimensions.get_mut(e).unwrap().flex_shrink = v;} } //: f32,
                             "flex-basis" => { if let Some(v) = declaration.value.dimension() { dimensions.get_mut(e).unwrap().flex_basis = v;} }  //: Dimension,
 
-                            // "size" => { if let Some(v) = declaration.value.size() { dimensions.get_mut(e).unwrap().size = v; }     /}/: Size<Dimension>,
-                            // "min_size" => { if let Some(v) = declaration.value.min_size() { dimensions.get_mut(e).unwrap().min_size = v; } /}/: Size<Dimension>,
-                            // "max_size" => { if let Some(v) = declaration.value.max_size() { dimensions.get_mut(e).unwrap().max_size = v; } /}/: Size<Dimension>,
+                            "width" => { if let Some(v) = declaration.value.dimension() { dimensions.get_mut(e).unwrap().size.width = v; }     } //: Size<Dimension>,
+                            "height" => { if let Some(v) = declaration.value.dimension() { dimensions.get_mut(e).unwrap().size.height = v; }     } //: Size<Dimension>,
+                            // "min_size" => { if let Some(v) = declaration.value.min_size() { dimensions.get_mut(e).unwrap().min_size = v; } } //: Size<Dimension>,
+                            // "max_size" => { if let Some(v) = declaration.value.max_size() { dimensions.get_mut(e).unwrap().max_size = v; } } //: Size<Dimension>,
 
                             // "aspect_ratio" => { if let Some(v) = declaration.value.aspect_ratio() { dimensions.get_mut(e).unwrap().aspect_ratio = v;} } //: Number,
                             x => println!("unknown css property: {}", x),

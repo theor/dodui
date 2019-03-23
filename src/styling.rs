@@ -262,6 +262,7 @@ impl Value {
     pub fn uint(&self) -> Option<u32> {
         match *self {
             Value::UInt(x) => Some(x),
+            Value::Float(x) => Some(x as u32),
             _ => None,
         }
     }
@@ -269,6 +270,7 @@ impl Value {
     pub fn float(&self) -> Option<f32> {
         match *self {
             Value::Float(x) => Some(x),
+            Value::UInt(x) => Some(x as f32),
             _ => None,
         }
     }
@@ -295,6 +297,7 @@ impl Value {
         };
         match self {
             Value::Float(x) => Some(Dimension::Points(*x)),
+            Value::UInt(x) => Some(Dimension::Points(*x as f32)),
             _ => None,
         }
     }
@@ -572,7 +575,8 @@ impl<'i> cssparser::DeclarationParser<'i> for DeclarationParser {
 
             "border-radius" | "border-width" | "width" | "height" | "min-width" | "min-height"
             | "max-width" | "max-height" | "padding-top" | "padding-right" | "padding-bottom"
-            | "padding-left" | "padding" | "font-size" | "icon-size" | "icon-margin" => {
+            | "padding-left" | "padding" | "margin-top" | "margin-right" | "margin-bottom"
+            | "margin-left" |  "font-size" | "icon-size" | "icon-margin" => {
                 match input.next()?.clone() {
                     Token::Number {
                         int_value: Some(x),

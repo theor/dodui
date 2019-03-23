@@ -1,16 +1,27 @@
 * {
-    /* background: #707070ff; */
+
+    padding-left: 40; 
 }
 
 Label {
+    width: 400; 
     background: #c0c0c0ff;
-}
-Button:hover {
-    background: #c000c0ff;
+    margin-left: 10;
+    margin-top: 10;
 }
 
+Button {
+    padding-left: 40;
+    height: 80; 
+}
+
+Button:hover {
+    background: #8f7f8f;
+}
 
 Root {
     flex-direction: column;
+    /* flex-grow: 1; */
+    width: 1000;
 }
 
