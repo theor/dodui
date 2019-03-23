@@ -522,6 +522,7 @@ impl<'a> System<'a> for StyleSystem {
         };
 
         for (e, _) in (&entities, &eelements).join() {
+            *dimensions.get_mut(e).unwrap() = Default::default();
             for rule in stylesheet.borrow().0.iter() {
                 if rule
                     .selectors
@@ -533,7 +534,7 @@ impl<'a> System<'a> for StyleSystem {
                                 bg.get_mut(e).unwrap().color =
                                     declaration.value.color().unwrap().into()
                             }
-                            "display" => {} //: Display,
+                            "display" => { dimensions.get_mut(e).unwrap().display = declaration.value.display().unwrap_or_default();  }
 
                             "position_type" => {}  //: PositionType,
                             "direction" => {}      //: Direction,

@@ -17,6 +17,8 @@ use std::fs::File;
 use std::io::BufReader;
 use std::io::Read;
 
+use stretch::style::*;
+
 #[derive(Debug, Default, Clone)]
 pub struct Theme {
     parent: Option<Arc<Theme>>,
@@ -253,6 +255,7 @@ pub enum Value {
     Float(f32),
     Color(Color),
     Str(String),
+    Ident(String),
 }
 
 impl Value {
@@ -281,6 +284,21 @@ impl Value {
         match self {
             Value::Str(x) => Some(x.clone()),
             _ => None,
+        }
+    }
+
+    fn ident(&self) -> Option<&str> {
+        match self {
+            Value::Ident(ref ident) => Some(ident),
+            _ => None,
+        }
+    }
+
+    pub fn display(&self) -> Option<Display> {
+        match self.ident() {
+                Some("none") => Some(Display::None),
+                Some("flex") => Some(Display::Flex),
+                _ => None,
         }
     }
 }
@@ -419,10 +437,14 @@ impl<'i> cssparser::DeclarationParser<'i> for DeclarationParser {
             },
 
             _ => {
-                return Err(input
+                match input.next()?.clone() {
+                    Token::Ident(rc) => { println!("ident {}: {:?}", name, rc); Value::Ident(rc.to_string().to_lowercase().to_string()) },
+                    _ => return Err(input
                     .current_source_location()
                     .new_basic_unexpected_token_error(input.next()?.clone())
-                    .into());
+                    .into()),
+                }
+
             }
         };
 
@@ -527,6 +549,38 @@ use crate::manager::*;
 
 #[derive(Debug)]
 pub struct Stylesheet(pub Vec<Rule>);
+
+// impl Stylesheet {
+//      pub fn get(&self, property: &str) -> Option<Value> {
+//         let mut matches: Vec<(bool, Specificity, Value)> = Vec::new();
+
+//         for rule in self.all_rules().iter().rev() {
+//             let matching_selectors = rule
+//                 .selectors
+//                 .iter()
+//                 .filter(|x| x.matches(query))
+//                 .collect::<Vec<_>>();
+
+//             if !matching_selectors.is_empty() {
+//                 if let Some(decl) = rule
+//                     .declarations
+//                     .iter()
+//                     .find(|decl| decl.property == property)
+//                 {
+//                     let highest_specifity = matching_selectors
+//                         .iter()
+//                         .map(|sel| sel.specificity())
+//                         .max()
+//                         .unwrap();
+//                     matches.push((decl.important, highest_specifity, decl.value.clone()));
+//                 }
+//             }
+//         }
+
+//         matches.sort_by_key(|x| (x.0, x.1));
+//         matches.last().map(|x| x.2.clone())
+//     }
+// }
 
 impl Load<Ctx, SimpleKey> for Stylesheet {
     type Error = Error;
