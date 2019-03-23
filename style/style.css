@@ -5,13 +5,15 @@
 
 Label {
     width: 400; 
-    background: #c0c0c0ff;
+    background: #c000c0ff;
     margin-left: 10;
     margin-top: 10;
 }
 
 Button {
+    background: #00008fff;
     padding-left: 40;
+    padding-right: 40;
     height: 80; 
 }
 
@@ -20,7 +22,7 @@ Button {
 }
 
 Root {
-    flex-direction: column;
+    flex-direction: row;
     /* flex-grow: 1; */
     width: 1000;
 }
