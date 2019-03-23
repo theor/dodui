@@ -14,8 +14,8 @@ use selectors::parser::{
 
 use std::sync::Mutex;
 
-use crate::transform::Parent;
 use crate::layout::Dimensions;
+use crate::transform::Parent;
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct Sym(string_interner::Sym);
@@ -496,12 +496,20 @@ impl<'a> System<'a> for StyleSystem {
     );
 
     #[allow(dead_code)]
-    fn run(&mut self, (entities, res, pseudo, parent, eelements, mut dimensions, mut bg, mut mat): Self::SystemData) {
+    fn run(
+        &mut self,
+        (entities, res, pseudo, parent, eelements, mut dimensions, mut bg, mut mat): Self::SystemData,
+    ) {
         use crate::manager::*;
 
-        let missing_pseudos : specs::BitSet = (&entities, &eelements, !&dimensions).join().map(|(e,_,_)| e.id()).collect();
+        let missing_pseudos: specs::BitSet = (&entities, &eelements, !&dimensions)
+            .join()
+            .map(|(e, _, _)| e.id())
+            .collect();
         for id in (&missing_pseudos).join() {
-            dimensions.insert(entities.entity(id), Default::default()).unwrap();
+            dimensions
+                .insert(entities.entity(id), Default::default())
+                .unwrap();
         }
 
         let key = SimpleKey::Path(("style/style.css").into());
@@ -515,42 +523,45 @@ impl<'a> System<'a> for StyleSystem {
 
         for (e, _) in (&entities, &eelements).join() {
             for rule in stylesheet.borrow().0.iter() {
-                if rule.selectors.matches(&EntityElement((&eelements, &parent, &pseudo), e)) {
+                if rule
+                    .selectors
+                    .matches(&EntityElement((&eelements, &parent, &pseudo), e))
+                {
                     for declaration in rule.declarations.iter() {
                         match declaration.property.as_ref() {
                             "background" => {
                                 bg.get_mut(e).unwrap().color =
                                     declaration.value.color().unwrap().into()
                             }
-                             "display" => {}, //: Display,
+                            "display" => {} //: Display,
 
-    "position_type" => {}, //: PositionType,
-    "direction" => {}, //: Direction,
-    "flex_direction" => {}, //: FlexDirection,
+                            "position_type" => {}  //: PositionType,
+                            "direction" => {}      //: Direction,
+                            "flex_direction" => {} //: FlexDirection,
 
-    "flex_wrap" => {}, //: FlexWrap,
-    "overflow" => {}, //: Overflow,
+                            "flex_wrap" => {} //: FlexWrap,
+                            "overflow" => {}  //: Overflow,
 
-    "align_items" => {}, //: AlignItems,
-    "align_self" => {}, //: AlignSelf,
-    "align_content" => {}, //: AlignContent,
+                            "align_items" => {}   //: AlignItems,
+                            "align_self" => {}    //: AlignSelf,
+                            "align_content" => {} //: AlignContent,
 
-    "justify_content" => {}, //: JustifyContent,
+                            "justify_content" => {} //: JustifyContent,
 
-    "position" => {}, //: Rect<Dimension>,
-    "margin" => {}, //: Rect<Dimension>,
-    "padding" => {}, //: Rect<Dimension>,
-    "border" => {}, //: Rect<Dimension>,
+                            "position" => {} //: Rect<Dimension>,
+                            "margin" => {}   //: Rect<Dimension>,
+                            "padding" => {}  //: Rect<Dimension>,
+                            "border" => {}   //: Rect<Dimension>,
 
-    "flex_grow" => {}, //: f32,
-    "flex_shrink" => {}, //: f32,
-    "flex_basis" => {}, //: Dimension,
+                            "flex_grow" => {}   //: f32,
+                            "flex_shrink" => {} //: f32,
+                            "flex_basis" => {}  //: Dimension,
 
-    "size" => {}, //: Size<Dimension>,
-    "min_size" => {}, //: Size<Dimension>,
-    "max_size" => {}, //: Size<Dimension>,
+                            "size" => {}     //: Size<Dimension>,
+                            "min_size" => {} //: Size<Dimension>,
+                            "max_size" => {} //: Size<Dimension>,
 
-    "aspect_ratio" => {}, //: Number,
+                            "aspect_ratio" => {} //: Number,
                             _ => unimplemented!(),
                         }
                     }

@@ -2,18 +2,18 @@ use crate::transform::GlobalTransform;
 use crate::transform::{Parent, ParentHierarchy};
 
 use specs::prelude::*;
+use stretch::layout::Node as LayoutNode;
 use stretch::{
     geometry::{Rect, Size},
-    style::*,
     number::Number,
+    style::*,
 };
-use stretch::layout::Node as LayoutNode;
 
 use crate::manager::*;
 use crate::style_system::EElement;
 
 pub struct Dimensions {
-     pub display: Display,
+    pub display: Display,
 
     pub position_type: PositionType,
     pub direction: Direction,
@@ -138,14 +138,7 @@ impl<'a> System<'a> for LayoutSystem {
             ..Default::default()
         };
 
-
-        for (entity, _, _) in (
-            &*entities,
-            &eelements,
-            !&parents,
-        )
-            .join()
-        {
+        for (entity, _, _) in (&*entities, &eelements, !&parents).join() {
             let branch = Self::make(&hierarchy, entity, &dimensions, &text, &store);
 
             root.children.push(branch);
@@ -154,13 +147,7 @@ impl<'a> System<'a> for LayoutSystem {
         let layout = stretch::compute(&root, Size::undefined()).unwrap();
 
         let mut i = 0;
-        for (entity, _, _) in (
-            &*entities,
-            &eelements,
-            !&parents,
-        )
-            .join()
-        {
+        for (entity, _, _) in (&*entities, &eelements, !&parents).join() {
             let n = &layout.children[i];
             Self::apply(&hierarchy, entity, &mut globals, n);
             i = i + 1;
@@ -205,13 +192,10 @@ impl LayoutSystem {
         }
 
         if let Some(text) = text.get(e) {
-            
-                let key = SimpleKey::Path(("style/NotoSans-Regular.ttf").into());
-                let font = store.get::<crate::layout::BitmapFont>(&key).unwrap();
-                let measured = font.borrow().measure(&text.text);
-            n.measure = Some(Box::new(move |_s| {
-                Ok(measured)
-            }));
+            let key = SimpleKey::Path(("style/NotoSans-Regular.ttf").into());
+            let font = store.get::<crate::layout::BitmapFont>(&key).unwrap();
+            let measured = font.borrow().measure(&text.text);
+            n.measure = Some(Box::new(move |_s| Ok(measured)));
         }
 
         for c in hierarchy.children(e) {

@@ -31,7 +31,10 @@ impl BitmapFont {
             None => (),
         }
 
-        Size { width: width as f32, height: self.0.get_font_height() as f32 }
+        Size {
+            width: width as f32,
+            height: self.0.get_font_height() as f32,
+        }
     }
 }
 

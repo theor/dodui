@@ -159,9 +159,14 @@ impl<'a> System<'a> for PickSystem {
         let p: cgmath::Point3<f32> =
             cgmath::Point3::new(mouse.position.0 as f32, mouse.position.1 as f32, 0.0);
 
-        let missing_pseudos : specs::BitSet = (&entities, &eelements, !&pseudo).join().map(|(e,_,_)| e.id()).collect();
+        let missing_pseudos: specs::BitSet = (&entities, &eelements, !&pseudo)
+            .join()
+            .map(|(e, _, _)| e.id())
+            .collect();
         for id in (&missing_pseudos).join() {
-            pseudo.insert(entities.entity(id), Pseudo { hover: false }).unwrap();
+            pseudo
+                .insert(entities.entity(id), Pseudo { hover: false })
+                .unwrap();
         }
 
         for (e, global, _tr, mut pseudo) in (&entities, &global, &tr, &mut pseudo).join() {
