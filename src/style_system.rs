@@ -562,14 +562,13 @@ impl<'a> System<'a> for StyleSystem {
                             "margin-right" => { if let Some(v) = declaration.value.dimension() { dimension.margin.end = v; }  } //: Rect<Dimension>,
                             "margin-top" => { if let Some(v) = declaration.value.dimension() { dimension.margin.top = v; }  } //: Rect<Dimension>,
                             "margin-bottom" => { if let Some(v) = declaration.value.dimension() { dimension.margin.bottom = v; }  } //: Rect<Dimension>,
-                            
-                     
+
                             // "padding" => { if let Some(v) = declaration.value.float() { dimension.padding = v; }  } //: Rect<Dimension>,
                             "padding-left" => { if let Some(v) = declaration.value.dimension() { dimension.padding.start = v; }  } //: Rect<Dimension>,
                             "padding-right" => { if let Some(v) = declaration.value.dimension() { dimension.padding.end = v; }  } //: Rect<Dimension>,
                             "padding-top" => { if let Some(v) = declaration.value.dimension() { dimension.padding.top = v; }  } //: Rect<Dimension>,
                             "padding-bottom" => { if let Some(v) = declaration.value.dimension() { dimension.padding.bottom = v; }  } //: Rect<Dimension>,
-                            
+
                             // "border" => { if let Some(v) = declaration.value.border() { dimension.border = v; }   } //: Rect<Dimension>,
 
                             "flex-grow" => { if let Some(v) = declaration.value.float() { dimension.flex_grow = v; } }   //: f32,

@@ -161,8 +161,11 @@ impl<'a> System<'a> for PickSystem {
         // typically on a retina macbook: dpi=2
         // mouse position will be in logical space (eg. 1024x768),
         // positions are in physical space (logical*dpi = 2048x1534)
-        let p: cgmath::Point3<f32> =
-            cgmath::Point3::new(mouse.position.0 as f32 * dpi, mouse.position.1 as f32 * dpi, 0.0);
+        let p: cgmath::Point3<f32> = cgmath::Point3::new(
+            mouse.position.0 as f32 * dpi,
+            mouse.position.1 as f32 * dpi,
+            0.0,
+        );
 
         let missing_pseudos: specs::BitSet = (&entities, &eelements, !&pseudo)
             .join()
@@ -292,7 +295,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
             .build();
         dispatcher.setup(&mut world.res);
 
-         let e0 = world
+        let e0 = world
             .create_entity()
             .with(Transform::new(0.0, 0.0))
             .with(EElement::new("Root".into()))
@@ -427,7 +430,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
                     m.position = p;
                 }
             }
-            winit::WindowEvent::HiDpiFactorChanged(d)  => println!("dpi changed {:?}", d),
+            winit::WindowEvent::HiDpiFactorChanged(d) => println!("dpi changed {:?}", d),
             _ => (),
         };
         // println!("{:?}",event);

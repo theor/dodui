@@ -197,7 +197,7 @@ impl LayoutSystem {
             let font = store.get::<crate::layout::BitmapFont>(&key).unwrap();
             let measured = font.borrow().measure(&text.text);
             let e = e.clone();
-            n.measure = Some(Box::new(move |s| { 
+            n.measure = Some(Box::new(move |s| {
                 // println!("measure input {:?} {:?}", e, s);
                 Ok(measured)
             }));

@@ -324,148 +324,148 @@ impl Value {
             _ => None,
         }
     }
-pub fn direction(&self) -> Option<Direction> {
-    match self.ident() {
-        Some("inherit") => Some(Direction::Inherit),
-        Some("rtl") => Some(Direction::RTL),
-        Some("ltr") => Some(Direction::LTR),
-        _ => None,
+    pub fn direction(&self) -> Option<Direction> {
+        match self.ident() {
+            Some("inherit") => Some(Direction::Inherit),
+            Some("rtl") => Some(Direction::RTL),
+            Some("ltr") => Some(Direction::LTR),
+            _ => None,
+        }
     }
-}
-pub fn flex_direction(&self) -> Option<FlexDirection> {
-    match self.ident() {
-        Some("column") => Some(FlexDirection::Column),
-        Some("row") => Some(FlexDirection::Row),
-        Some("columnreverse") => Some(FlexDirection::ColumnReverse),
-        Some("rowreverse") => Some(FlexDirection::RowReverse),
-        _ => None,
+    pub fn flex_direction(&self) -> Option<FlexDirection> {
+        match self.ident() {
+            Some("column") => Some(FlexDirection::Column),
+            Some("row") => Some(FlexDirection::Row),
+            Some("columnreverse") => Some(FlexDirection::ColumnReverse),
+            Some("rowreverse") => Some(FlexDirection::RowReverse),
+            _ => None,
+        }
     }
-}
-pub fn flex_wrap(&self) -> Option<FlexWrap> {
-    match self.ident() {
-        Some("noWrap") => Some(FlexWrap::NoWrap),
-        Some("wrap") => Some(FlexWrap::Wrap),
-        Some("wrapReverse") => Some(FlexWrap::WrapReverse),
-        _ => None,
+    pub fn flex_wrap(&self) -> Option<FlexWrap> {
+        match self.ident() {
+            Some("noWrap") => Some(FlexWrap::NoWrap),
+            Some("wrap") => Some(FlexWrap::Wrap),
+            Some("wrapReverse") => Some(FlexWrap::WrapReverse),
+            _ => None,
+        }
     }
-}
-pub fn overflow(&self) -> Option<Overflow> {
-    match self.ident() {
-        Some("hidden") => Some(Overflow::Hidden),
-        Some("scroll") => Some(Overflow::Scroll),
-        Some("visible") => Some(Overflow::Visible),
-        _ => None,
+    pub fn overflow(&self) -> Option<Overflow> {
+        match self.ident() {
+            Some("hidden") => Some(Overflow::Hidden),
+            Some("scroll") => Some(Overflow::Scroll),
+            Some("visible") => Some(Overflow::Visible),
+            _ => None,
+        }
     }
-}
-pub fn align_items(&self) -> Option<AlignItems> {
-    match self.ident() {
-        Some("baseline") => Some(AlignItems::Baseline),
-        Some("center") => Some(AlignItems::Center),
-        Some("flexend") => Some(AlignItems::FlexEnd),
-        Some("flexstart") => Some(AlignItems::FlexStart),
-        Some("stretch") => Some(AlignItems::Stretch),
-        _ => None,
+    pub fn align_items(&self) -> Option<AlignItems> {
+        match self.ident() {
+            Some("baseline") => Some(AlignItems::Baseline),
+            Some("center") => Some(AlignItems::Center),
+            Some("flexend") => Some(AlignItems::FlexEnd),
+            Some("flexstart") => Some(AlignItems::FlexStart),
+            Some("stretch") => Some(AlignItems::Stretch),
+            _ => None,
+        }
     }
-}
-pub fn align_self(&self) -> Option<AlignSelf> {
-    match self.ident() {
-        Some("auto") => Some(AlignSelf::Auto),
-        Some("baseline") => Some(AlignSelf::Baseline),
-        Some("center") => Some(AlignSelf::Center),
-        Some("flexend") => Some(AlignSelf::FlexEnd),
-        Some("flexstart") => Some(AlignSelf::FlexStart),
-        Some("stretch") => Some(AlignSelf::Stretch),
-        _ => None,
+    pub fn align_self(&self) -> Option<AlignSelf> {
+        match self.ident() {
+            Some("auto") => Some(AlignSelf::Auto),
+            Some("baseline") => Some(AlignSelf::Baseline),
+            Some("center") => Some(AlignSelf::Center),
+            Some("flexend") => Some(AlignSelf::FlexEnd),
+            Some("flexstart") => Some(AlignSelf::FlexStart),
+            Some("stretch") => Some(AlignSelf::Stretch),
+            _ => None,
+        }
     }
-}
-pub fn align_content(&self) -> Option<AlignContent> {
-    match self.ident() {
-        Some("center") => Some(AlignContent::Center),
-        Some("flexend") => Some(AlignContent::FlexEnd),
-        Some("flexstart") => Some(AlignContent::FlexStart),
-        Some("spacearound") => Some(AlignContent::SpaceAround),
-        Some("spacebetween") => Some(AlignContent::SpaceBetween),
-        Some("stretch") => Some(AlignContent::Stretch),
-        _ => None,
+    pub fn align_content(&self) -> Option<AlignContent> {
+        match self.ident() {
+            Some("center") => Some(AlignContent::Center),
+            Some("flexend") => Some(AlignContent::FlexEnd),
+            Some("flexstart") => Some(AlignContent::FlexStart),
+            Some("spacearound") => Some(AlignContent::SpaceAround),
+            Some("spacebetween") => Some(AlignContent::SpaceBetween),
+            Some("stretch") => Some(AlignContent::Stretch),
+            _ => None,
+        }
     }
-}
-pub fn justify_content(&self) -> Option<JustifyContent> {
-    match self.ident() {
-        Some("center") => Some(JustifyContent::Center),
-        Some("flexend") => Some(JustifyContent::FlexEnd),
-        Some("flexstart") => Some(JustifyContent::FlexStart),
-        Some("spacearound") => Some(JustifyContent::SpaceAround),
-        Some("spacebetween") => Some(JustifyContent::SpaceBetween),
-        Some("spaceevenly") => Some(JustifyContent::SpaceEvenly),
-        _ => None,
+    pub fn justify_content(&self) -> Option<JustifyContent> {
+        match self.ident() {
+            Some("center") => Some(JustifyContent::Center),
+            Some("flexend") => Some(JustifyContent::FlexEnd),
+            Some("flexstart") => Some(JustifyContent::FlexStart),
+            Some("spacearound") => Some(JustifyContent::SpaceAround),
+            Some("spacebetween") => Some(JustifyContent::SpaceBetween),
+            Some("spaceevenly") => Some(JustifyContent::SpaceEvenly),
+            _ => None,
+        }
     }
-}
-// pub fn position(&self) -> Option<Rect<Dimension>> {
-//     match self.ident() {
-//         Some("") => Some(Dimension::),
-//         _ => None,
-//     }
-// }
-// pub fn margin(&self) -> Option<Rect<Dimension>> {
-//     match self.ident() {
-//         Some("") => Some(Dimension::),
-//         _ => None,
-//     }
-// }
-// pub fn padding(&self) -> Option<Rect<Dimension>> {
-//     match self.ident() {
-//         Some("") => Some(Dimension::),
-//         _ => None,
-//     }
-// }
-// pub fn border(&self) -> Option<Rect<Dimension>> {
-//     match self.ident() {
-//         Some("") => Some(Dimension::),
-//         _ => None,
-//     }
-// }
-// pub fn flex_grow(&self) -> Option<f32> {
-//     match self.ident() {
-//         Some("") => Some(f32::),
-//         _ => None,
-//     }
-// }
-// pub fn flex_shrink(&self) -> Option<f32> {
-//     match self.ident() {
-//         Some("") => Some(f32::),
-//         _ => None,
-//     }
-// }
-// pub fn flex_basis(&self) -> Option<Dimension> {
-//     match self.ident() {
-//         Some("") => Some(Dimension::),
-//         _ => None,
-//     }
-// }
-// pub fn size(&self) -> Option<Size<Dimension>> {
-//     match self.ident() {
-//         Some("") => Some(Dimension::),
-//         _ => None,
-//     }
-// }
-// pub fn min_size(&self) -> Option<Size<Dimension>> {
-//     match self.ident() {
-//         Some("") => Some(Dimension::),
-//         _ => None,
-//     }
-// }
-// pub fn max_size(&self) -> Option<Size<Dimension>> {
-//     match self.ident() {
-//         Some("") => Some(Dimension::),
-//         _ => None,
-//     }
-// }
-// pub fn aspect_ratio(&self) -> Option<Number> {
-//     match self.ident() {
-//         Some("") => Some(Number::),
-//         _ => None,
-//     }
-// }
+    // pub fn position(&self) -> Option<Rect<Dimension>> {
+    //     match self.ident() {
+    //         Some("") => Some(Dimension::),
+    //         _ => None,
+    //     }
+    // }
+    // pub fn margin(&self) -> Option<Rect<Dimension>> {
+    //     match self.ident() {
+    //         Some("") => Some(Dimension::),
+    //         _ => None,
+    //     }
+    // }
+    // pub fn padding(&self) -> Option<Rect<Dimension>> {
+    //     match self.ident() {
+    //         Some("") => Some(Dimension::),
+    //         _ => None,
+    //     }
+    // }
+    // pub fn border(&self) -> Option<Rect<Dimension>> {
+    //     match self.ident() {
+    //         Some("") => Some(Dimension::),
+    //         _ => None,
+    //     }
+    // }
+    // pub fn flex_grow(&self) -> Option<f32> {
+    //     match self.ident() {
+    //         Some("") => Some(f32::),
+    //         _ => None,
+    //     }
+    // }
+    // pub fn flex_shrink(&self) -> Option<f32> {
+    //     match self.ident() {
+    //         Some("") => Some(f32::),
+    //         _ => None,
+    //     }
+    // }
+    // pub fn flex_basis(&self) -> Option<Dimension> {
+    //     match self.ident() {
+    //         Some("") => Some(Dimension::),
+    //         _ => None,
+    //     }
+    // }
+    // pub fn size(&self) -> Option<Size<Dimension>> {
+    //     match self.ident() {
+    //         Some("") => Some(Dimension::),
+    //         _ => None,
+    //     }
+    // }
+    // pub fn min_size(&self) -> Option<Size<Dimension>> {
+    //     match self.ident() {
+    //         Some("") => Some(Dimension::),
+    //         _ => None,
+    //     }
+    // }
+    // pub fn max_size(&self) -> Option<Size<Dimension>> {
+    //     match self.ident() {
+    //         Some("") => Some(Dimension::),
+    //         _ => None,
+    //     }
+    // }
+    // pub fn aspect_ratio(&self) -> Option<Number> {
+    //     match self.ident() {
+    //         Some("") => Some(Number::),
+    //         _ => None,
+    //     }
+    // }
 }
 
 #[derive(Clone, Debug)]
@@ -576,7 +576,7 @@ impl<'i> cssparser::DeclarationParser<'i> for DeclarationParser {
             "border-radius" | "border-width" | "width" | "height" | "min-width" | "min-height"
             | "max-width" | "max-height" | "padding-top" | "padding-right" | "padding-bottom"
             | "padding-left" | "padding" | "margin-top" | "margin-right" | "margin-bottom"
-            | "margin-left" |  "font-size" | "icon-size" | "icon-margin" => {
+            | "margin-left" | "font-size" | "icon-size" | "icon-margin" => {
                 match input.next()?.clone() {
                     Token::Number {
                         int_value: Some(x),

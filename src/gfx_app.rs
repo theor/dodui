@@ -119,10 +119,7 @@ where
         gfx_window_glutin::init::<ColorFormat, DepthFormat>(window, context, &events_loop)
             .expect("Failed to create window");
     let hidpifactor = window.get_hidpi_factor();
-    let mut current_size = window
-        .get_inner_size()
-        .unwrap()
-        .to_physical(hidpifactor);
+    let mut current_size = window.get_inner_size().unwrap().to_physical(hidpifactor);
     let shade_lang = device.get_info().shading_language;
 
     let backend = if shade_lang.is_embedded {
