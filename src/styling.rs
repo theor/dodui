@@ -296,9 +296,9 @@ impl Value {
 
     pub fn display(&self) -> Option<Display> {
         match self.ident() {
-                Some("none") => Some(Display::None),
-                Some("flex") => Some(Display::Flex),
-                _ => None,
+            Some("none") => Some(Display::None),
+            Some("flex") => Some(Display::Flex),
+            _ => None,
         }
     }
 }
@@ -436,16 +436,18 @@ impl<'i> cssparser::DeclarationParser<'i> for DeclarationParser {
                 }
             },
 
-            _ => {
-                match input.next()?.clone() {
-                    Token::Ident(rc) => { println!("ident {}: {:?}", name, rc); Value::Ident(rc.to_string().to_lowercase().to_string()) },
-                    _ => return Err(input
-                    .current_source_location()
-                    .new_basic_unexpected_token_error(input.next()?.clone())
-                    .into()),
+            _ => match input.next()?.clone() {
+                Token::Ident(rc) => {
+                    println!("ident {}: {:?}", name, rc);
+                    Value::Ident(rc.to_string().to_lowercase().to_string())
                 }
-
-            }
+                _ => {
+                    return Err(input
+                        .current_source_location()
+                        .new_basic_unexpected_token_error(input.next()?.clone())
+                        .into());
+                }
+            },
         };
 
         Ok(Declaration {
