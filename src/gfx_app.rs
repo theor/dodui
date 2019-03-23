@@ -31,6 +31,7 @@ pub struct WindowTargets<R: gfx::Resources> {
     pub depth: gfx::handle::DepthStencilView<R, DepthFormat>,
     pub aspect_ratio: f32,
     pub size: (u32, u32),
+    pub dpi_factor: f64,
 }
 
 pub enum Backend {
@@ -117,10 +118,11 @@ where
     let (window, mut device, factory, main_color, main_depth) =
         gfx_window_glutin::init::<ColorFormat, DepthFormat>(window, context, &events_loop)
             .expect("Failed to create window");
+    let hidpifactor = window.get_hidpi_factor();
     let mut current_size = window
         .get_inner_size()
         .unwrap()
-        .to_physical(window.get_hidpi_factor());
+        .to_physical(hidpifactor);
     let shade_lang = device.get_info().shading_language;
 
     let backend = if shade_lang.is_embedded {
@@ -136,6 +138,7 @@ where
             depth: main_depth,
             aspect_ratio: current_size.width as f32 / current_size.height as f32,
             size: current_size.into(),
+            dpi_factor: hidpifactor,
         },
     );
 
@@ -166,6 +169,7 @@ where
                                 depth: new_depth,
                                 aspect_ratio: size.width as f32 / size.height as f32,
                                 size: size.into(),
+                                dpi_factor: window.get_hidpi_factor(),
                             });
                         }
                     }
@@ -221,6 +225,7 @@ where
             depth: main_depth,
             aspect_ratio: window.size.0 as f32 / window.size.1 as f32,
             size: (window.size.0 as u32, window.size.1 as u32),
+            dpi_factor: window.inner.get_hidpi_factor(),
         },
     );
     let mut device = gfx_device_dx11::Deferred::from(device);

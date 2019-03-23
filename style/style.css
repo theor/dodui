@@ -15,8 +15,8 @@ Button {
     height: 80; 
 }
 
-Button:hover {
-    background: #8f7f8f;
+*:hover {
+    background: #00008f;
 }
 
 Root {

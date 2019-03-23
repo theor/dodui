@@ -14,6 +14,7 @@ use specs::prelude::*;
 #[derive(Debug, Default)]
 pub struct Screen {
     pub size: (u32, u32),
+    pub dpi_factor: f64,
 }
 
 pub struct Text {
@@ -136,7 +137,7 @@ impl<R: gfx::Resources, F: Clone + gfx::Factory<R>> Renderer<R, F> {
         window_targets: gfx_app::WindowTargets<R>,
     ) -> Self {
         use gfx::traits::FactoryExt;
-        println!("size {:?}", window_targets.size);
+        println!("size {:?} dpi factor {}", window_targets.size, window_targets.dpi_factor);
 
         let v = 1;
         let vertex_data = [

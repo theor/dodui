@@ -153,11 +153,16 @@ impl<'a> System<'a> for PickSystem {
     #[allow(dead_code)]
     fn run(
         &mut self,
-        (entities, eelements, global, tr, mut pseudo, mut event, mouse, events, _screen): Self::SystemData,
+        (entities, eelements, global, tr, mut pseudo, mut event, mouse, events, screen): Self::SystemData,
     ) {
         use cgmath::Transform;
+
+        let dpi = screen.dpi_factor as f32;
+        // typically on a retina macbook: dpi=2
+        // mouse position will be in logical space (eg. 1024x768),
+        // positions are in physical space (logical*dpi = 2048x1534)
         let p: cgmath::Point3<f32> =
-            cgmath::Point3::new(mouse.position.0 as f32, mouse.position.1 as f32, 0.0);
+            cgmath::Point3::new(mouse.position.0 as f32 * dpi, mouse.position.1 as f32 * dpi, 0.0);
 
         let missing_pseudos: specs::BitSet = (&entities, &eelements, !&pseudo)
             .join()
@@ -172,11 +177,13 @@ impl<'a> System<'a> for PickSystem {
         for (e, global, _tr, mut pseudo) in (&entities, &global, &tr, &mut pseudo).join() {
             let p2 = global.0.transform_point(cgmath::Point3::new(0.0, 0.0, 0.0));
             let size = global.1;
-            if p.x as f32 >= p2.x
+            let hit = p.x as f32 >= p2.x
                 && p.x as f32 <= p2.x + size.0
                 && p.y as f32 >= p2.y
-                && p.y as f32 <= p2.y + size.1
-            {
+                && p.y as f32 <= p2.y + size.1;
+            // println!("pick mouse {:?} e {:?} start {:?} size {:?} hit {}", p, e, p2, size, hit);
+
+            if hit {
                 pseudo.hover = true;
                 if mouse.left_click == ButtonState::Pressed {
                     events.invoke(e.clone());
@@ -262,6 +269,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
         world.add_resource::<Events>(Default::default());
         world.add_resource::<rendering::Screen>(rendering::Screen {
             size: window_targets.size,
+            dpi_factor: window_targets.dpi_factor,
         });
 
         let mut dispatcher = DispatcherBuilder::new()
@@ -419,6 +427,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
                     m.position = p;
                 }
             }
+            winit::WindowEvent::HiDpiFactorChanged(d)  => println!("dpi changed {:?}", d),
             _ => (),
         };
         // println!("{:?}",event);
