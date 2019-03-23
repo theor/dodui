@@ -5,3 +5,6 @@
 Label {
     background: #c0c0c0ff;
 }
+Button:hover {
+    background: #c000c0ff;
+}

@@ -15,6 +15,7 @@ use selectors::parser::{
 use std::sync::Mutex;
 
 use crate::transform::Parent;
+use crate::layout::Dimensions;
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct Sym(string_interner::Sym);
@@ -225,7 +226,6 @@ pub struct EElement {
     id: Option<Sym>,
     typeid: Sym,
     classes: std::collections::HashSet<Sym>,
-    pseudo: Pseudo,
 }
 
 impl specs::Component for EElement {
@@ -237,15 +237,7 @@ impl EElement {
         EElement {
             typeid: typeid.into(),
             id: None,
-            pseudo: Pseudo { hover: false },
             classes: Default::default(),
-        }
-    }
-
-    pub fn with_hover(self, hover: bool) -> Self {
-        EElement {
-            pseudo: Pseudo { hover },
-            ..self
         }
     }
 
@@ -264,7 +256,11 @@ impl EElement {
     }
 }
 
-type EntityElementStorage<'a> = (&'a ReadStorage<'a, EElement>, &'a ReadStorage<'a, Parent>);
+type EntityElementStorage<'a> = (
+    &'a ReadStorage<'a, EElement>,
+    &'a ReadStorage<'a, Parent>,
+    &'a ReadStorage<'a, Pseudo>,
+);
 
 #[derive(Clone)]
 pub struct EntityElement<'a>(EntityElementStorage<'a>, Entity);
@@ -282,6 +278,10 @@ impl<'a> EntityElement<'a> {
 
     pub fn eelt(&self) -> &'a EElement {
         (self.0).0.get(self.1).unwrap()
+    }
+
+    pub fn pseudo(&self) -> &'a Pseudo {
+        (self.0).2.get(self.1).unwrap()
     }
 }
 
@@ -358,7 +358,7 @@ impl<'a> Element for EntityElement<'a> {
         F: FnMut(&Self, ElementSelectorFlags),
     {
         match pc {
-            PseudoClass::Hover => self.eelt().pseudo.hover,
+            PseudoClass::Hover => self.pseudo().hover,
             _ => false,
         }
     }
@@ -490,13 +490,19 @@ impl<'a> System<'a> for StyleSystem {
         ReadStorage<'a, Pseudo>,
         ReadStorage<'a, crate::transform::Parent>,
         ReadStorage<'a, EElement>,
+        WriteStorage<'a, Dimensions>,
         WriteStorage<'a, StyleBackground>,
         WriteStorage<'a, crate::rendering::Material>,
     );
 
     #[allow(dead_code)]
-    fn run(&mut self, (entities, res, pseudo, parent, ee, mut bg, mut mat): Self::SystemData) {
+    fn run(&mut self, (entities, res, pseudo, parent, eelements, mut dimensions, mut bg, mut mat): Self::SystemData) {
         use crate::manager::*;
+
+        let missing_pseudos : specs::BitSet = (&entities, &eelements, !&dimensions).join().map(|(e,_,_)| e.id()).collect();
+        for id in (&missing_pseudos).join() {
+            dimensions.insert(entities.entity(id), Default::default()).unwrap();
+        }
 
         let key = SimpleKey::Path(("style/style.css").into());
         let stylesheet = match res.get::<crate::styling::Stylesheet>(&key) {
@@ -507,15 +513,44 @@ impl<'a> System<'a> for StyleSystem {
             }
         };
 
-        for (e, _) in (&entities, &ee).join() {
+        for (e, _) in (&entities, &eelements).join() {
             for rule in stylesheet.borrow().0.iter() {
-                if rule.selectors.matches(&EntityElement((&ee, &parent), e)) {
+                if rule.selectors.matches(&EntityElement((&eelements, &parent, &pseudo), e)) {
                     for declaration in rule.declarations.iter() {
                         match declaration.property.as_ref() {
                             "background" => {
                                 bg.get_mut(e).unwrap().color =
                                     declaration.value.color().unwrap().into()
                             }
+                             "display" => {}, //: Display,
+
+    "position_type" => {}, //: PositionType,
+    "direction" => {}, //: Direction,
+    "flex_direction" => {}, //: FlexDirection,
+
+    "flex_wrap" => {}, //: FlexWrap,
+    "overflow" => {}, //: Overflow,
+
+    "align_items" => {}, //: AlignItems,
+    "align_self" => {}, //: AlignSelf,
+    "align_content" => {}, //: AlignContent,
+
+    "justify_content" => {}, //: JustifyContent,
+
+    "position" => {}, //: Rect<Dimension>,
+    "margin" => {}, //: Rect<Dimension>,
+    "padding" => {}, //: Rect<Dimension>,
+    "border" => {}, //: Rect<Dimension>,
+
+    "flex_grow" => {}, //: f32,
+    "flex_shrink" => {}, //: f32,
+    "flex_basis" => {}, //: Dimension,
+
+    "size" => {}, //: Size<Dimension>,
+    "min_size" => {}, //: Size<Dimension>,
+    "max_size" => {}, //: Size<Dimension>,
+
+    "aspect_ratio" => {}, //: Number,
                             _ => unimplemented!(),
                         }
                     }

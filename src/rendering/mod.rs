@@ -4,11 +4,11 @@ pub use material::*;
 use crate::gfx_app;
 use crate::gfx_app::{ColorFormat, DepthFormat};
 use crate::shade;
-use cgmath::{Matrix4, Point2, Point3, Vector3};
+use cgmath::{Matrix4, Point3, Vector3};
 use gfx;
 use gfx::texture;
 
-use crate::transform::{GlobalTransform, Transform};
+use crate::transform::GlobalTransform;
 use specs::prelude::*;
 
 #[derive(Debug, Default)]
@@ -36,19 +36,18 @@ impl<'a, R: gfx::Resources, C: gfx::CommandBuffer<R>, F: Clone + gfx::Factory<R>
     for SysRender<'a, R, C, F>
 {
     type SystemData = (
-        ReadStorage<'a, Transform>,
         ReadStorage<'a, GlobalTransform>,
         ReadStorage<'a, Material>,
         ReadStorage<'a, Text>,
         // Read<'a, Screen>,
     );
-    fn run(&mut self, (tr, pos, mat, text): Self::SystemData) {
+    fn run(&mut self, (pos, mat, text): Self::SystemData) {
         self.encoder
             .clear(&self.data.out_color, [0.1, 0.2, 0.3, 1.0]);
         self.encoder.clear_depth(&self.data.out_depth, 1.0);
         let vp: cgmath::Matrix4<f32> = self.data.transform.into();
 
-        for (tr, pos, mat, text) in (&tr, &pos, &mat, text.maybe()).join() {
+        for (pos, mat, text) in (&pos, &mat, text.maybe()).join() {
             let m = pos.0;
             let locals = Locals {
                 transform: (vp * m).into(),
