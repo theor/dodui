@@ -21,7 +21,7 @@ use crate::transform::Parent;
 pub struct Sym(string_interner::Sym);
 
 impl Sym {
-    pub fn resolve(&self) -> Option<String> { 
+    pub fn resolve(&self) -> Option<String> {
         let si: &string_interner::DefaultStringInterner = &STRING_INTERNER.lock().unwrap();
         si.resolve(self.0).map(|x| x.to_owned())
     }

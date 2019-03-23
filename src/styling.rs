@@ -17,10 +17,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::io::Read;
 
-use stretch::{
-    geometry::Rect,
-    style::*
-};
+use stretch::{geometry::Rect, style::*};
 
 #[derive(Debug, Default, Clone)]
 pub struct Theme {
@@ -570,14 +567,14 @@ struct DeclarationParser;
 impl DeclarationParser {
     fn parse_dimension<'i, 't>(
         &mut self,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Dimension, ParseError<'i, CustomParseError>> {
         let location = input.current_source_location();
         match *input.next()? {
             Token::Number { value, .. } => Ok(Dimension::Points(value)),
             Token::Percentage { unit_value, .. } => Ok(Dimension::Percent(unit_value)),
             Token::Ident(ref id) if id == &"auto" => Ok(Dimension::Auto),
-            ref t => return Err(location.new_unexpected_token_error(t.clone()))
+            ref t => return Err(location.new_unexpected_token_error(t.clone())),
         }
     }
 }
@@ -617,22 +614,20 @@ impl<'i> cssparser::DeclarationParser<'i> for DeclarationParser {
 
             "border-radius" | "border-width" | "width" | "height" | "min-width" | "min-height"
             | "max-width" | "max-height" | "padding-top" | "padding-right" | "padding-bottom"
-            | "padding-left" | "margin-top" | "margin-right" | "margin-bottom"
-            | "margin-left" | "font-size" | "icon-size" | "icon-margin" => {
-                match input.next()?.clone() {
-                    Token::Number {
-                        int_value: Some(x),
-                        has_sign,
-                        ..
-                    } if !has_sign && x >= 0 => Value::UInt(x as u32),
-                    t => {
-                        return Err(input
-                            .current_source_location()
-                            .new_basic_unexpected_token_error(t.clone())
-                            .into());
-                    }
+            | "padding-left" | "margin-top" | "margin-right" | "margin-bottom" | "margin-left"
+            | "font-size" | "icon-size" | "icon-margin" => match input.next()?.clone() {
+                Token::Number {
+                    int_value: Some(x),
+                    has_sign,
+                    ..
+                } if !has_sign && x >= 0 => Value::UInt(x as u32),
+                t => {
+                    return Err(input
+                        .current_source_location()
+                        .new_basic_unexpected_token_error(t.clone())
+                        .into());
                 }
-            }
+            },
 
             "opacity" => match input.next()?.clone() {
                 Token::Number { value: x, .. } => Value::Float(x as f32),

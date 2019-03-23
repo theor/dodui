@@ -165,9 +165,7 @@ impl LayoutSystem {
         node: &LayoutNode,
     ) {
         let t: &mut GlobalTransform = globals.get_mut(e).unwrap();
-        t.0 = cgmath::Matrix4::from_translation(
-            [node.location.x, node.location.y, 0.0f32].into(),
-        );
+        t.0 = cgmath::Matrix4::from_translation([node.location.x, node.location.y, 0.0f32].into());
         t.1 = (node.size.width, node.size.height);
         // println!("Layout {:?}: {:?}", e, t);
         for (i, c) in hierarchy.children(e).iter().enumerate() {
