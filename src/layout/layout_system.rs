@@ -195,7 +195,7 @@ impl LayoutSystem {
             let key = SimpleKey::Path(("style/NotoSans-Regular.ttf").into());
             let font = store.get::<crate::layout::BitmapFont>(&key).unwrap();
             let measured = font.borrow().measure(&text.text);
-            n.measure = Some(Box::new(move |_s| Ok(measured)));
+            n.measure = Some(Box::new(move |s| { /*println!("measure input {:?}", s);*/ Ok(measured) }));
         }
 
         for c in hierarchy.children(e) {

@@ -1,5 +1,5 @@
 * {
-    background: #707070ff;
+    /* background: #707070ff; */
 }
 
 Label {
@@ -8,3 +8,9 @@ Label {
 Button:hover {
     background: #c000c0ff;
 }
+
+
+Root {
+    flex-direction: column;
+}
+

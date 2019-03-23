@@ -276,14 +276,21 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
                 "transform_system",
                 &["parent_hierarchy_system"],
             )
-            .with(PickSystem, "sys_pick", &["transform_system"])
-            .with(ConsumeEventsSystem, "sys_consume", &["sys_pick"])
-            .with(StyleSystem::new(), "sys_style", &["sys_consume"])
+            .with(StyleSystem::new(), "sys_style", &["transform_system"])
             .with(layout::LayoutSystem, "sys_layout", &["sys_style"])
-            // .with(layout::MeasureSystem::new(), "sys_measure", &["sys_layout"])
-            .with(CleanEventsSystem, "sys_clean_events", &["sys_layout"])
+            .with(PickSystem, "sys_pick", &["sys_layout"])
+            .with(ConsumeEventsSystem, "sys_consume", &["sys_pick"])
+            .with(CleanEventsSystem, "sys_clean_events", &["sys_consume"])
             .build();
         dispatcher.setup(&mut world.res);
+
+         let e0 = world
+            .create_entity()
+            .with(Transform::new(0.0, 0.0))
+            .with(EElement::new("Root".into()))
+            .with(StyleBackground::from_color(255, 0, 0, 255))
+            // .with(<Pseudo as Default>::default())
+            .build();
 
         let e1 = world
             .create_entity()
@@ -293,6 +300,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
             .with(<Pseudo as Default>::default())
             .with(rendering::Material::default())
             .with(Vel(0.01))
+            .with(Parent { entity: e0 })
             .build();
 
         {
@@ -330,7 +338,7 @@ impl<'a, 'b, R: gfx::Resources, F: gfx::Factory<R> + Clone> gfx_app::Application
             .with(StyleBackground::from_color(255, 255, 0, 255))
             // .with(<Pseudo as Default>::default())
             .with(rendering::Material::default())
-            // .with(Parent { entity: e2 })
+            .with(Parent { entity: e0 })
             .with(rendering::Text {
                 text: "ent 4 child of 2".to_string(),
             })
