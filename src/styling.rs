@@ -17,7 +17,10 @@ use std::fs::File;
 use std::io::BufReader;
 use std::io::Read;
 
-use stretch::style::*;
+use stretch::{
+    geometry::Rect,
+    style::*
+};
 
 #[derive(Debug, Default, Clone)]
 pub struct Theme {
@@ -256,6 +259,7 @@ pub enum Value {
     Color(Color),
     Str(String),
     Ident(String),
+    Rect(Rect<Dimension>),
 }
 
 impl Value {
@@ -289,6 +293,12 @@ impl Value {
         }
     }
 
+    pub fn rect_dimension(&self) -> Option<Rect<Dimension>> {
+        match self {
+            Value::Rect(r) => Some(r.clone()),
+            _ => None,
+        }
+    }
     pub fn dimension(&self) -> Option<Dimension> {
         match self.ident() {
             Some("auto") => return Some(Dimension::Auto),
@@ -557,6 +567,21 @@ fn parse_selectors<'i, 't>(
 
 struct DeclarationParser;
 
+impl DeclarationParser {
+    fn parse_dimension<'i, 't>(
+        &mut self,
+        input: &mut Parser<'i, 't>
+    ) -> Result<Dimension, ParseError<'i, CustomParseError>> {
+        let location = input.current_source_location();
+        match *input.next()? {
+            Token::Number { value, .. } => Ok(Dimension::Points(value)),
+            Token::Percentage { unit_value, .. } => Ok(Dimension::Percent(unit_value)),
+            Token::Ident(ref id) if id == &"auto" => Ok(Dimension::Auto),
+            ref t => return Err(location.new_unexpected_token_error(t.clone()))
+        }
+    }
+}
+
 impl<'i> cssparser::DeclarationParser<'i> for DeclarationParser {
     type Declaration = Declaration;
     type Error = CustomParseError;
@@ -573,9 +598,26 @@ impl<'i> cssparser::DeclarationParser<'i> for DeclarationParser {
 
             "font-family" | "icon-font-family" => Value::Str(parse_string(input)?),
 
+            "margin" | "padding" => {
+                let mut array: [_; 4] = [None; 4];
+                let mut i: usize = 0;
+                while let Ok(n) = self.parse_dimension(input) {
+                    array[i] = Some(n);
+                    i += 1;
+                }
+
+                match i {
+                    4 /*tlrb*/ => Value::Rect(Rect { top: array[0].unwrap(), start: array[1].unwrap(), end: array[2].unwrap(), bottom: array[3].unwrap() }),
+                    3 /*thb*/ => Value::Rect(Rect { top: array[0].unwrap(), start: array[1].unwrap(), end: array[1].unwrap(), bottom: array[2].unwrap() }),
+                    2 /*vh*/ => Value::Rect(Rect { top: array[0].unwrap(), start: array[1].unwrap(), end: array[1].unwrap(), bottom: array[0].unwrap() }),
+                    1 /*vh*/ => Value::Rect(Rect { top: array[0].unwrap(), start: array[0].unwrap(), end: array[0].unwrap(), bottom: array[0].unwrap() }),
+                    _ => unimplemented!(),
+                }
+            }
+
             "border-radius" | "border-width" | "width" | "height" | "min-width" | "min-height"
             | "max-width" | "max-height" | "padding-top" | "padding-right" | "padding-bottom"
-            | "padding-left" | "padding" | "margin-top" | "margin-right" | "margin-bottom"
+            | "padding-left" | "margin-top" | "margin-right" | "margin-bottom"
             | "margin-left" | "font-size" | "icon-size" | "icon-margin" => {
                 match input.next()?.clone() {
                     Token::Number {

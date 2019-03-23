@@ -557,17 +557,17 @@ impl<'a> System<'a> for StyleSystem {
 
                             // "position" => { if let Some(v) = declaration.value.position() { dimension.position = v; } } //: Rect<Dimension>,
 
-                            // "margin" => { if let Some(v) = declaration.value.margin() { dimension.margin = v; }   } //: Rect<Dimension>,
-                            "margin-left" => { if let Some(v) = declaration.value.dimension() { dimension.margin.start = v; } } //: Rect<Dimension>,
-                            "margin-right" => { if let Some(v) = declaration.value.dimension() { dimension.margin.end = v; }  } //: Rect<Dimension>,
-                            "margin-top" => { if let Some(v) = declaration.value.dimension() { dimension.margin.top = v; }  } //: Rect<Dimension>,
-                            "margin-bottom" => { if let Some(v) = declaration.value.dimension() { dimension.margin.bottom = v; }  } //: Rect<Dimension>,
+                            "margin" => { if let Some(v) = declaration.value.rect_dimension() { dimension.margin = v; }   } //: Rect<Dimension>,
+                            "margin-left" => { if let Some(v) = declaration.value.dimension() { dimension.margin.start = v; } } //: Dimension,
+                            "margin-right" => { if let Some(v) = declaration.value.dimension() { dimension.margin.end = v; }  } //: Dimension,
+                            "margin-top" => { if let Some(v) = declaration.value.dimension() { dimension.margin.top = v; }  } //: Dimension,
+                            "margin-bottom" => { if let Some(v) = declaration.value.dimension() { dimension.margin.bottom = v; }  } //: Dimension,
 
-                            // "padding" => { if let Some(v) = declaration.value.float() { dimension.padding = v; }  } //: Rect<Dimension>,
-                            "padding-left" => { if let Some(v) = declaration.value.dimension() { dimension.padding.start = v; }  } //: Rect<Dimension>,
-                            "padding-right" => { if let Some(v) = declaration.value.dimension() { dimension.padding.end = v; }  } //: Rect<Dimension>,
-                            "padding-top" => { if let Some(v) = declaration.value.dimension() { dimension.padding.top = v; }  } //: Rect<Dimension>,
-                            "padding-bottom" => { if let Some(v) = declaration.value.dimension() { dimension.padding.bottom = v; }  } //: Rect<Dimension>,
+                            "padding" => { if let Some(v) = declaration.value.rect_dimension() { dimension.padding = v; }  } //: Rect<Dimension>,
+                            "padding-left" => { if let Some(v) = declaration.value.dimension() { dimension.padding.start = v; }  } //: Dimension,
+                            "padding-right" => { if let Some(v) = declaration.value.dimension() { dimension.padding.end = v; }  } //: Dimension,
+                            "padding-top" => { if let Some(v) = declaration.value.dimension() { dimension.padding.top = v; }  } //: Dimension,
+                            "padding-bottom" => { if let Some(v) = declaration.value.dimension() { dimension.padding.bottom = v; }  } //: Dimension,
 
                             // "border" => { if let Some(v) = declaration.value.border() { dimension.border = v; }   } //: Rect<Dimension>,
 
@@ -577,10 +577,12 @@ impl<'a> System<'a> for StyleSystem {
 
                             "width" => { if let Some(v) = declaration.value.dimension() { dimension.size.width = v; }     } //: Size<Dimension>,
                             "height" => { if let Some(v) = declaration.value.dimension() { dimension.size.height = v; }     } //: Size<Dimension>,
-                            // "min_size" => { if let Some(v) = declaration.value.min_size() { dimension.min_size = v; } } //: Size<Dimension>,
-                            // "max_size" => { if let Some(v) = declaration.value.max_size() { dimension.max_size = v; } } //: Size<Dimension>,
+                            "min-width" => { if let Some(v) = declaration.value.dimension() { dimension.min_size.width = v; }     } //: Size<Dimension>,
+                            "min-height" => { if let Some(v) = declaration.value.dimension() { dimension.min_size.height = v; }     } //: Size<Dimension>,
+                            "max-width" => { if let Some(v) = declaration.value.dimension() { dimension.max_size.width = v; }     } //: Size<Dimension>,
+                            "max-height" => { if let Some(v) = declaration.value.dimension() { dimension.max_size.height = v; }     } //: Size<Dimension>,
 
-                            // "aspect_ratio" => { if let Some(v) = declaration.value.aspect_ratio() { dimension.aspect_ratio = v;} } //: Number,
+                            "aspect_ratio" => { if let Some(v) = declaration.value.float() { dimension.aspect_ratio = stretch::number::Number::Defined(v);} } //: Number,
                             x => println!("unknown css property: {}", x),
                         }
                     }

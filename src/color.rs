@@ -26,22 +26,22 @@ impl Color {
     }
 
     /// Get the r value
-    pub fn r(&self) -> u8 {
+    pub fn r(self) -> u8 {
         ((self.data & 0xFF00_0000) >> 24) as u8
     }
 
     /// Get the g value
-    pub fn g(&self) -> u8 {
+    pub fn g(self) -> u8 {
         ((self.data & 0x00FF_0000) >> 16) as u8
     }
 
     /// Get the b value
-    pub fn b(&self) -> u8 {
+    pub fn b(self) -> u8 {
         ((self.data & 0x0000_FF00) >> 8) as u8
     }
 
     /// Get the alpha value
-    pub fn a(&self) -> u8 {
+    pub fn a(self) -> u8 {
         (self.data & 0x0000_00FF) as u8
     }
 
