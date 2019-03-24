@@ -85,3 +85,6 @@ version = "0.8"
 
 [target."cfg(windows)".dependencies.gfx_window_dxgi]
 version = "0.18"
+
+[profile.release]
+debug = true
