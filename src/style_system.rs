@@ -636,6 +636,7 @@ mod tests {
         let mut w = specs::World::new();
         w.register::<Parent>();
         w.register::<EElement>();
+        w.register::<Pseudo>();
         w
     }
 
@@ -644,16 +645,17 @@ mod tests {
         w: &mut World,
         s: &Selectors,
         e: EElement,
+        hover: bool,
         parent: Option<Entity>,
     ) -> Entity {
-        let mut e = w.create_entity().with(e);
+        let mut e = w.create_entity().with(e).with(Pseudo{hover});
         if let Some(parent) = parent {
             e = e.with(Parent { entity: parent });
         }
         let e = e.build();
-        let (ee, p): (ReadStorage<EElement>, ReadStorage<Parent>) = w.system_data();
+        let (ee, p, pseudo): (ReadStorage<EElement>, ReadStorage<Parent>, ReadStorage<Pseudo>) = w.system_data();
 
-        assert_eq!(res, s.matches(&EntityElement((&ee, &p), e)));
+        assert_eq!(res, s.matches(&EntityElement((&ee, &p, &pseudo), e)));
 
         e
     }
@@ -667,14 +669,16 @@ mod tests {
             false,
             &mut w,
             &s,
-            EElement::new("B".into()).with_hover(false),
+            EElement::new("B".into()),
+            false,
             None,
         );
         check(
             true,
             &mut w,
             &s,
-            EElement::new("B".into()).with_hover(true),
+            EElement::new("B".into()),
+            true,
             None,
         );
     }
@@ -684,8 +688,8 @@ mod tests {
         let s = Selectors::compile("A").unwrap();
         let mut w = world();
 
-        check(false, &mut w, &s, EElement::new("B".into()), None);
-        check(true, &mut w, &s, EElement::new("A".into()), None);
+        check(false, &mut w, &s, EElement::new("B".into()), false, None);
+        check(true, &mut w, &s, EElement::new("A".into()), false, None);
     }
 
     #[test]
@@ -694,10 +698,10 @@ mod tests {
 
         let mut w = world();
 
-        let ea = check(false, &mut w, &s, EElement::new("A".into()), None);
-        let eb = check(true, &mut w, &s, EElement::new("B".into()), Some(ea));
-        let eb2 = check(true, &mut w, &s, EElement::new("B".into()), Some(eb));
-        let _ec = check(false, &mut w, &s, EElement::new("C".into()), Some(eb2));
+        let ea = check(false, &mut w, &s, EElement::new("A".into()), false, None);
+        let eb = check(true, &mut w, &s, EElement::new("B".into()), false, Some(ea));
+        let eb2 = check(true, &mut w, &s, EElement::new("B".into()), false,Some(eb));
+        let _ec = check(false, &mut w, &s, EElement::new("C".into()), false, Some(eb2));
     }
 
     #[test]
@@ -710,6 +714,7 @@ mod tests {
             &mut w,
             &s,
             EElement::new("B".into()).with_id("asd".into()),
+            false,
             None,
         );
         check(
@@ -717,6 +722,7 @@ mod tests {
             &mut w,
             &s,
             EElement::new("A".into()).with_id("id".into()),
+            false,
             None,
         );
     }
@@ -731,6 +737,7 @@ mod tests {
             &mut w,
             &s,
             EElement::new("X".into()).add_class("b".into()),
+            false,
             None,
         );
         check(
@@ -738,6 +745,7 @@ mod tests {
             &mut w,
             &s,
             EElement::new("X".into()).add_class("a".into()),
+            false,
             None,
         );
     }
